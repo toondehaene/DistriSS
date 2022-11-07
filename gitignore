@@ -1,1 +1,5 @@
+# exclude everything
 LARGE_DATA/*
+
+# exception to the rule
+!LARGE_DATA/.gitkeep 

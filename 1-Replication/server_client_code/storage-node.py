@@ -48,6 +48,7 @@ if is_raspberry_pi():
     server_address = input("Server address: 192.168.0.___ ")
     pull_address = "tcp://192.168.0."+server_address+":5557"
     sender_address = "tcp://192.168.0."+server_address+":5558"
+    push_address = sender_address
     subscriber_address = "tcp://192.168.0."+server_address+":5559"
     repair_subscriber_address = "tcp://192.168.0."+server_address+":5560"
     repair_sender_address = "tcp://192.168.0."+server_address+":5561"

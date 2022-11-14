@@ -17,7 +17,7 @@ import messages_pb2 # Generated Protobuf messages
 import io # For sending binary data in a HTTP response
 import logging
 
-from apscheduler.schedulers.background import BackgroundScheduler # automated repair
+# from apscheduler.schedulers.background import BackgroundScheduler # automated repair
 import atexit # unregister scheduler at app exit
 
 import raid1
@@ -286,8 +286,7 @@ def add_files():
 
 # TO BE DONE: RLNC repair endpoint placeholder
 
-
-
+"""
 @app.route('/services/rs_repair',  methods=['GET'])
 def rs_repair():
     #Retrieve the list of files stored using Reed-Solomon from the database
@@ -322,7 +321,7 @@ scheduler.add_job(func=rs_automated_repair, trigger="interval", seconds=60)
 
 # Shut down the scheduler when exiting the app
 atexit.register(lambda: scheduler.shutdown())
-
+"""
 
 @app.errorhandler(500)
 def server_error(e):

@@ -8,8 +8,7 @@ import io # For sending binary data in a HTTP response
 import logging
 import rs
 import threading
-
-from utils import is_raspberry_pi
+import utils
 
 def get_db():
     if 'db' not in g:
@@ -86,17 +85,11 @@ def get_file(file_id):
     )
 
     # Save measurement on thread
-    thread = threading.Thread(target=writeMeasurement("DecodingMeasurements.txt", f['size'], time_to_decode))
+    thread = threading.Thread(target=utils.writeMeasurement("DecodingMeasurements.txt", f['size'], time_to_decode))
     thread.start()
 
     return send_file(io.BytesIO(file_data), mimetype=f['content_type'])
 #
-
-def writeMeasurement(measurementFile, filesize, time):
-    file = open(measurementFile, 'a')
-    file.write(str(filesize) + " " + str(time)+"\n")
-    file.close()
-
 
 @app.route('/files_mp', methods=['POST'])
 def add_files_multipart():
@@ -137,9 +130,9 @@ def add_files_multipart():
     ms = (endTime-startTime) * 1000
 
     # Save measurement on thread
-    thread1 = threading.Thread(target=writeMeasurement("RedundancyMeasurements.txt", size, ms))
+    thread1 = threading.Thread(target=utils.writeMeasurement("RedundancyMeasurements.txt", size, ms))
     thread1.start()
-    thread2 = threading.Thread(target=writeMeasurement("EncodingMeasurements.txt", size, encoding_time))
+    thread2 = threading.Thread(target=utils.writeMeasurement("EncodingMeasurements.txt", size, encoding_time))
     thread2.start()
 
     storage_details = {
@@ -170,4 +163,4 @@ def server_error(e):
 # Start the Flask app (must be after the endpoint functions) 
 host_local_computer = "localhost" # Listen for connections on the local computer
 host_local_network = "0.0.0.0" # Listen for connections on the local network
-app.run(host=host_local_network if is_raspberry_pi() else host_local_computer, port=9000)
+app.run(host=host_local_network if utils.is_raspberry_pi() else host_local_computer, port=9000)

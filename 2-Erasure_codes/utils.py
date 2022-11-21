@@ -2,6 +2,11 @@ import random
 import string
 import os
 
+def writeMeasurement(measurementFile, filesize, time):
+    file = open(measurementFile, 'a')
+    file.write(str(filesize) + " " + str(time)+"\n")
+    file.close()
+
 def random_string(length=8):
     """
     Returns a random alphanumeric string of the given length. 

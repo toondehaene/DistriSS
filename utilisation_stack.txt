@@ -1,0 +1,11 @@
+1 . right click wifi symbol
+2 . open parameters network & internet 
+3 . change adapter options 
+3 . choose the adapter one (ethernet)
+4 . right click propriété
+5 . find ipv4 in the list
+6 . set the ip to  192.168.0.10 - 255.255.255.0 - 192.168.0.1
+7 . type in wsl ssh pi@192.168.0.101 or 102 or 103 or 104 whatever with password raspberry
+8 . filezilla with port 22 to transfer files :)
+9 . type remote ssh in the search bar in vscode, and connect to the right address
+ 

@@ -131,7 +131,7 @@ while True:
         data = msg[1]
         print(str(task.filename))
         names = [a.strip("'") for a in task.filename.strip('][').split(', ')]
-        print(names)
+        
         print('Chunk to save: %s, size: %d bytes' % (names[0], len(data)))
         # Store the chunk with the given filename
         chunk_local_path = data_folder+'/'+names[0]
@@ -140,7 +140,7 @@ while True:
 
         # Send response (just the file name)
         # reply the one that sent the message
-        delegate_bound.send_string(names[0])
+        sender.send_string(names[0])
 
         if len(names) > 1:  # send to the next one bc not empty :)
             print('Boucle ta boucle')

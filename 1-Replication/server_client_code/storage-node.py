@@ -128,21 +128,21 @@ while True:
 
         # The data is the second frame
         data = msg[1]
-
+        names = [a.strip("'") for a in task.filename.strip('][').split(', ')]
         print('Chunk to save: %s, size: %d bytes' %
-              (task.filename[0], len(data)))
+              (names[0], len(data)))
         # Store the chunk with the given filename
-        chunk_local_path = data_folder+'/'+task.filename[0]
+        chunk_local_path = data_folder+'/'+names[0]
         write_file(data, chunk_local_path)
         print("Chunk saved to %s" % chunk_local_path)
 
         # Send response (just the file name)
         # reply the one that sent the message
-        delegate_bound.send_string(task.filename[0])
+        delegate_bound.send_string(names[0])
 
-        if len(task.filename) > 1:  # send to the next one bc not empty :)
+        if len(names) > 1:  # send to the next one bc not empty :)
             print('Boucle ta boucle')
-            task.filename = task.filename[1:]
+            task.filename = str(names[1:])
             delegate_remote.send_multipart([
                 task.SerializeToString(),
                 data

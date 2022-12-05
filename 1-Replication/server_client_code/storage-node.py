@@ -102,6 +102,7 @@ delegate_remote = context.socket(zmq.PUSH)
 delegate_remote.connect(delegate_connect_address)
 
 
+
 # Use a Poller to monitor three sockets at the same time
 poller = zmq.Poller()
 poller.register(receiver, zmq.POLLIN)
@@ -121,7 +122,7 @@ while True:
     # At this point one or multiple sockets may have received a message
     if delegate_bound in socks:
         # Incoming message on the 'receiver' socket where we get tasks to store a chunk
-        msg = receiver.recv_multipart()
+        msg = delegate_bound.recv_multipart()
         # Parse the Protobuf message from the first frame
         task = messages_pb2.storedata_request()
         task.ParseFromString(msg[0])

@@ -51,7 +51,7 @@ if is_raspberry_pi():
     pull_address = "tcp://192.168.0."+server_address+":5557"
     sender_address = "tcp://192.168.0."+server_address+":5558"
     push_address = sender_address
-    delegate_bind_address = "tcp://*:6000"
+    delegate_bind_address = "tcp://192.168.0."+current_adress+":6000"
     delegate_connect_address = "tcp://192.168.0." + \
         str(int(current_adress)-100 % 4 + 101) + ":6000"
 

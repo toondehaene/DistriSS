@@ -80,7 +80,7 @@ def store_file_delegated(file_data, delegate_socket, response_socket, filenames)
     # Send 1 'store data' Protobuf requests with the file name
     
     task = messages_pb2.storedata_request()
-    task.filename = str(filenames)    #TODO: double check
+    task.filename = str(filenames)    
     delegate_socket.send_multipart([
         task.SerializeToString(),
         file_data

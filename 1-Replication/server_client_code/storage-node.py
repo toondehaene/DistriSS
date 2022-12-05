@@ -129,6 +129,7 @@ while True:
         # The data is the second frame
         data = msg[1]
         names = [a.strip("'") for a in task.filename.strip('][').split(', ')]
+        print(names)
         print('Chunk to save: %s, size: %d bytes' %
               (names[0], len(data)))
         # Store the chunk with the given filename

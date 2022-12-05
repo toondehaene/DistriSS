@@ -12,6 +12,7 @@ import random
 import string
 
 import rlnc
+import socket as sck
 
 from utils import random_string, write_file, is_raspberry_pi
 
@@ -50,8 +51,9 @@ if is_raspberry_pi():
     sender_address = "tcp://192.168.0."+server_address+":5558"
     push_address = sender_address
     delegate_bind_address = "tcp://*:6000"
+    lastthreenum = sck.gethostbyname(sck.gethostname())[-3:]
     delegate_connect_address = "tcp://192.168.0." + \
-        str(int(node_id)-100 % 4 + 101) + "6000"
+        str(int(lastthreenum)-100 % 4 + 101) + "6000"
 
     subscriber_address = "tcp://192.168.0."+server_address+":5559"
     repair_subscriber_address = "tcp://192.168.0."+server_address+":5560"

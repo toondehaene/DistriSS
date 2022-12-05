@@ -23,8 +23,10 @@ import atexit # unregister scheduler at app exit
 import raid1
 import reedsolomon
 import rlnc
-
 from utils import is_raspberry_pi
+
+# Define a general K which determines the amount of copies from a file that will be sent to different nodes
+K = 4
 
 def get_db():
     if 'db' not in g:
@@ -219,11 +221,10 @@ def add_files_multipart():
     print("Storage mode: %s" % storage_mode)
 
     if storage_mode == 'raid1':
-        file_data_1_names, file_data_2_names = raid1.store_file(data, send_task_socket, response_socket)
+        file_data_1_names = raid1.store_file(data, send_task_socket, response_socket)
 
         storage_details = {
-            "part1_filenames": file_data_1_names,
-            "part2_filenames": file_data_2_names
+            "part1_filenames": file_data_1_names
         }
 
     elif storage_mode == 'erasure_coding_rs':

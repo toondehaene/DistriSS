@@ -64,7 +64,7 @@ else:
 context = zmq.Context()
 # Socket to receive Store Chunk messages from the controller
 receiver = context.socket(zmq.PULL)
-receiver.connect(pull_address)
+receiver.connect(pull_address)     #connect is connecting to a remote server != bind who is connecting to our own address
 print("Listening on "+ pull_address)
 # Socket to send results to the controller
 sender = context.socket(zmq.PUSH)

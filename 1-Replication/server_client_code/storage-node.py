@@ -47,13 +47,13 @@ except FileNotFoundError:
 if is_raspberry_pi():
     # On the Raspberry Pi: ask the user to input the last segment of the server IP address
     server_address = input("Server address: 192.168.0.___ ")
+    current_adress = input("Current node address : 192.168.0.___ ")
     pull_address = "tcp://192.168.0."+server_address+":5557"
     sender_address = "tcp://192.168.0."+server_address+":5558"
     push_address = sender_address
     delegate_bind_address = "tcp://*:6000"
-    lastthreenum = sck.gethostbyname(sck.gethostname())[-3:]
     delegate_connect_address = "tcp://192.168.0." + \
-        str(int(lastthreenum)-100 % 4 + 101) + "6000"
+        str(int(current_adress)-100 % 4 + 101) + ":6000"
 
     subscriber_address = "tcp://192.168.0."+server_address+":5559"
     repair_subscriber_address = "tcp://192.168.0."+server_address+":5560"

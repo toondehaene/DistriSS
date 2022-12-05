@@ -53,7 +53,7 @@ if is_raspberry_pi():
     push_address = sender_address
     delegate_bind_address = "tcp://192.168.0."+current_adress+":6000"
     delegate_connect_address = "tcp://192.168.0." + \
-        str(int(current_adress)-100 % 4 + 101) + ":6000"
+        str((int(current_adress)-100) % 4 + 101) + ":6000"
 
     subscriber_address = "tcp://192.168.0."+server_address+":5559"
     repair_subscriber_address = "tcp://192.168.0."+server_address+":5560"

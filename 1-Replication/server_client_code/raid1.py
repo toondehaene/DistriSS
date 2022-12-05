@@ -54,7 +54,7 @@ def store_file(file_data, send_task_socket, response_socket):
     return file_data_names
 #
 
-def store_file_delegated(file_data, send_task_socket, response_socket, filenames):
+def store_file_delegated(file_data, delegate_socket, response_socket, filenames):
     """
     Implements storing a file with RAID 1 using 4 storage nodes.
 
@@ -81,7 +81,7 @@ def store_file_delegated(file_data, send_task_socket, response_socket, filenames
     
     task = messages_pb2.storedata_request()
     task.filename = str(filenames)    #TODO: double check
-    send_task_socket.send_multipart([
+    delegate_socket.send_multipart([
         task.SerializeToString(),
         file_data
     ])

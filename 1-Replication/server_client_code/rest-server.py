@@ -70,6 +70,10 @@ repair_socket.bind("tcp://*:5560")
 repair_response_socket = context.socket(zmq.PULL)
 repair_response_socket.bind("tcp://*:5561")
 
+# Make delegate socket
+delegate_socket = context.socket(zmq.PUSH)
+delegate_socket.connect("tcp://192.168.0.102:6000")
+
 # Wait for all workers to start and connect. 
 time.sleep(1)
 print("Listening to ZMQ messages on tcp://*:5558 and tcp://*:5561")
@@ -222,7 +226,7 @@ def add_files_delegated():
     print("Storage mode: %s" % storage_mode)
     filenames = [random_string(8) for i in range(3)]
     if storage_mode == 'raid1':
-        file_data_1_names = raid1.store_file_delegated(data, send_task_socket, response_socket, filenames)
+        file_data_1_names = raid1.store_file_delegated(data, delegate_socket, response_socket, filenames)
 
         storage_details = {
             "part1_filenames": filenames   #to store all the != filenames into db

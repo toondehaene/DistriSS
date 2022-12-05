@@ -171,10 +171,6 @@ while True:
         # Send response (just the file name)
         sender.send_string(task.filename)
 
-        if len(task.filename) > 1:
-            print('Boucle ta boucle')
-            filenames_to_send = task.filename[1:]
-
     if subscriber in socks:
         # Incoming message on the 'subscriber' socket where we get retrieve requests
         msg = subscriber.recv()

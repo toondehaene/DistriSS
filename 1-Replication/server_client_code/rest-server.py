@@ -227,11 +227,11 @@ def add_files_delegated():
     # Read the requested storage mode from the form (default value: 'raid1')
     storage_mode = payload.get('storage', 'raid1')
     print("Storage mode: %s" % storage_mode)
-    filenames = [filename] * 4
+    filenames = [filename] * 4      #TODO : randomize the name :) (for security lol)
     if storage_mode == 'raid1':
         global lst_delegate_socket
         file_data_1_names = raid1.store_file_delegated(data, lst_delegate_socket[0], response_socket, filenames)
-        lst_delegate_socket = lst_delegate_socket[1:]+ lst_delegate_socket[0]
+        lst_delegate_socket = lst_delegate_socket[1:]+ lst_delegate_socket[0:1]
         storage_details = {
             "part1_filenames": filenames   #to store all the != filenames into db
         }

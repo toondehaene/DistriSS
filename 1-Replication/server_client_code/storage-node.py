@@ -121,6 +121,7 @@ while True:
 
     # At this point one or multiple sockets may have received a message
     if delegate_bound in socks:
+        print("ENTERED DELEGATE BOUND IF BRANCH")
         # Incoming message on the 'receiver' socket where we get tasks to store a chunk
         msg = delegate_bound.recv_multipart()
         # Parse the Protobuf message from the first frame

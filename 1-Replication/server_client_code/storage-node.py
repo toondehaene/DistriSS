@@ -21,11 +21,11 @@ MAX_CHUNKS_PER_FILE = 10
 # (or use the current folder if none was given)
 data_folder = sys.argv[1] if len(sys.argv) > 1 else "./"
 if data_folder != "./":
-    # Try to create the folder  
+    # Try to create the folder
     try:
         os.mkdir('./'+data_folder)
     except FileExistsError as _:
-        # OK, the folder exists 
+        # OK, the folder exists
         pass
 print("Data folder: %s" % data_folder)
 
@@ -49,6 +49,10 @@ if is_raspberry_pi():
     pull_address = "tcp://192.168.0."+server_address+":5557"
     sender_address = "tcp://192.168.0."+server_address+":5558"
     push_address = sender_address
+    delegate_bind_address = "tcp://*:6000"
+    delegate_connect_address = "tcp://192.168.0." + \
+        str(int(node_id)-100 % 4 + 101) + "6000"
+
     subscriber_address = "tcp://192.168.0."+server_address+":5559"
     repair_subscriber_address = "tcp://192.168.0."+server_address+":5560"
     repair_sender_address = "tcp://192.168.0."+server_address+":5561"
@@ -59,13 +63,14 @@ else:
     subscriber_address = "tcp://localhost:5559"
     repair_subscriber_address = "tcp://localhost:5560"
     repair_sender_address = "tcp://localhost:5561"
-    
+
 
 context = zmq.Context()
 # Socket to receive Store Chunk messages from the controller
 receiver = context.socket(zmq.PULL)
-receiver.connect(pull_address)     #connect is connecting to a remote server != bind who is connecting to our own address
-print("Listening on "+ pull_address)
+# connect is connecting to a remote server != bind who is connecting to our own address
+receiver.connect(pull_address)
+print("Listening on " + pull_address)
 # Socket to send results to the controller
 sender = context.socket(zmq.PUSH)
 sender.connect(push_address)
@@ -86,12 +91,21 @@ repair_subscriber.setsockopt(zmq.SUBSCRIBE, node_id.encode('UTF-8'))
 repair_sender = context.socket(zmq.PUSH)
 repair_sender.connect(repair_sender_address)
 
+# sockets for delegated duplication:
+delegate_bound = context.socket(zmq.PULL)
+delegate_bound.bind(delegate_bind_address)  # we receive files from this one
+
+delegate_remote = context.socket(zmq.PUSH)
+# we transmit files to this one
+delegate_remote.connect(delegate_connect_address)
+
 
 # Use a Poller to monitor three sockets at the same time
 poller = zmq.Poller()
 poller.register(receiver, zmq.POLLIN)
 poller.register(subscriber, zmq.POLLIN)
 poller.register(repair_subscriber, zmq.POLLIN)
+poller.register(delegate_bound, zmq.POLLIN)
 
 
 while True:
@@ -103,6 +117,37 @@ while True:
     pass
 
     # At this point one or multiple sockets may have received a message
+    if delegate_bound in socks:
+        # Incoming message on the 'receiver' socket where we get tasks to store a chunk
+        msg = receiver.recv_multipart()
+        # Parse the Protobuf message from the first frame
+        task = messages_pb2.storedata_request()
+        task.ParseFromString(msg[0])
+
+        # The data is the second frame
+        data = msg[1]
+
+        print('Chunk to save: %s, size: %d bytes' %
+              (task.filename[0], len(data)))
+        # Store the chunk with the given filename
+        chunk_local_path = data_folder+'/'+task.filename[0]
+        write_file(data, chunk_local_path)
+        print("Chunk saved to %s" % chunk_local_path)
+
+        # Send response (just the file name)
+        # reply the one that sent the message
+        delegate_bound.send_string(task.filename[0])
+
+        if len(task.filename) > 1:  # send to the next one bc not empty :)
+            print('Boucle ta boucle')
+            task.filename = task.filename[1:]
+            delegate_remote.send_multipart([
+                task.SerializeToString(),
+                data
+            ])
+            # send to delegate_remote
+        else:
+            print("List of filenames empty; finished.")
 
     if receiver in socks:
         # Incoming message on the 'receiver' socket where we get tasks to store a chunk
@@ -115,7 +160,6 @@ while True:
         data = msg[1]
 
         print('Chunk to save: %s, size: %d bytes' % (task.filename, len(data)))
-
         # Store the chunk with the given filename
         chunk_local_path = data_folder+'/'+task.filename
         write_file(data, chunk_local_path)
@@ -123,12 +167,15 @@ while True:
 
         # Send response (just the file name)
         sender.send_string(task.filename)
-        
+
+        if len(task.filename) > 1:
+            print('Boucle ta boucle')
+            filenames_to_send = task.filename[1:]
 
     if subscriber in socks:
         # Incoming message on the 'subscriber' socket where we get retrieve requests
         msg = subscriber.recv()
-        
+
         # Parse the Protobuf message from the first frame
         task = messages_pb2.getdata_request()
         task.ParseFromString(msg)
@@ -158,7 +205,7 @@ while True:
 
         # The topic is sent a frame 0
         #topic = str(msg[0])
-        
+
         # Parse the header from frame 1. This is used to distinguish between
         # different types of requests
         header = messages_pb2.header()
@@ -173,12 +220,13 @@ while True:
             fragment_name = task.fragment_name
             # Check whether the fragment is on the disk
             fragment_found = os.path.exists(data_folder+'/'+fragment_name) and \
-                             os.path.isfile(data_folder+'/'+fragment_name)
-            
+                os.path.isfile(data_folder+'/'+fragment_name)
+
             if fragment_found == True:
                 print("Status request for fragment: %s - Found" % fragment_name)
             else:
-                print("Status request for fragment: %s - Not found" % fragment_name)
+                print("Status request for fragment: %s - Not found" %
+                      fragment_name)
 
             # Send the response
             response = messages_pb2.fragment_status_response()
@@ -202,7 +250,7 @@ while True:
             try:
                 with open(data_folder+'/'+filename, "rb") as in_file:
                     print("Found chunk %s, sending it back" % filename)
-                    
+
                     repair_sender.send_multipart([
                         bytes(filename, 'utf-8'),
                         in_file.read()
@@ -211,10 +259,10 @@ while True:
                 # This is OK here
                 pass
 
-        #TO BE DONE: placeholder for handling recoded requests
+        # TO BE DONE: placeholder for handling recoded requests
 
         elif header.request_type == messages_pb2.STORE_FRAGMENT_DATA_REQ:
-            #Fragment store request - same implementation as serving normal data
+            # Fragment store request - same implementation as serving normal data
             # requests, except for the different socket the response is sent on
             task = messages_pb2.storedata_request()
             task.ParseFromString(msg[2])
@@ -222,8 +270,9 @@ while True:
             # The data is the third frame
             data = msg[3]
 
-            print('Chunk to save: %s, size: %d bytes' % (task.filename, len(data)))
-            
+            print('Chunk to save: %s, size: %d bytes' %
+                  (task.filename, len(data)))
+
             # Store the chunk with the given filename
             chunk_local_path = data_folder+'/'+task.filename
             write_file(data, chunk_local_path)

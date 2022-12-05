@@ -24,6 +24,7 @@ import raid1
 import reedsolomon
 import rlnc
 from utils import is_raspberry_pi
+from utils import random_string
 
 # Define a general K which determines the amount of copies from a file that will be sent to different nodes
 K = 4
@@ -195,6 +196,52 @@ def delete_file(file_id):
     return make_response('TODO: implement this endpoint', 404)
 #
 
+@app.route('/files_mp_delegated', methods=['POST'])
+def add_files_delegated():
+    # Flask separates files from the other form fields
+    payload = request.form
+    files = request.files
+    
+    # Make sure there is a file in the request
+    if not files or not files.get('file'):
+        logging.error("No file was uploaded in the request!")
+        return make_response("File missing!", 400)
+    
+    # Reference to the file under 'file' key
+    file = files.get('file')
+    # The sender encodes a the file name and type together with the file contents
+    filename = file.filename
+    content_type = file.mimetype
+    # Load the file contents into a bytearray and measure its size
+    data = bytearray(file.read())
+    size = len(data)
+    print("File received: %s, size: %d bytes, type: %s" % (filename, size, content_type))
+    
+    # Read the requested storage mode from the form (default value: 'raid1')
+    storage_mode = payload.get('storage', 'raid1')
+    print("Storage mode: %s" % storage_mode)
+    filenames = [random_string(8) for i in range(3)]
+    if storage_mode == 'raid1':
+        file_data_1_names = raid1.store_file_delegated(data, send_task_socket, response_socket, filenames)
+
+        storage_details = {
+            "part1_filenames": filenames   #to store all the != filenames into db
+        }
+    else:
+        logging.error("Unexpected storage mode: %s" % storage_mode)
+        return make_response("Wrong storage mode", 400)
+
+    # Insert the File record in the DB
+    import json
+    db = get_db()
+    cursor = db.execute(
+        "INSERT INTO `file`(`filename`, `size`, `content_type`, `storage_mode`, `storage_details`) VALUES (?,?,?,?,?)",
+        (filename, size, content_type, storage_mode, json.dumps(storage_details))
+    )
+    db.commit()
+
+    return make_response({"id": cursor.lastrowid }, 201)
+#
 @app.route('/files_mp', methods=['POST'])
 def add_files_multipart():
     # Flask separates files from the other form fields

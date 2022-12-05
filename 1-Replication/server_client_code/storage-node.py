@@ -100,8 +100,7 @@ delegate_bound.bind(delegate_bind_address)  # we receive files from this one
 delegate_remote = context.socket(zmq.PUSH)
 # we transmit files to this one
 delegate_remote.connect(delegate_connect_address)
-
-
+print("connected to remote delegate socket")
 
 # Use a Poller to monitor three sockets at the same time
 poller = zmq.Poller()
@@ -142,6 +141,7 @@ while True:
         # Send response (just the file name)
         # reply the one that sent the message
         sender.send_string(names[0])
+        print(delegate_connect_address)
 
         if len(names) > 1:  # send to the next one bc not empty :)
             print('Boucle ta boucle')

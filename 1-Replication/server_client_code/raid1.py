@@ -104,6 +104,19 @@ def store_file_delegated(file_data, delegate_socket, response_socket, filenames)
     return file_data_name
 #
 
+# TODO: write this
+# Get a file by requesting on a bound socket where all nodes are connected on. 
+# Each send() on this socket will target the next connected, wrapping around
+# We want to replace the normal get_file() by this one because we don't want to
+# use publish / subscibe to get files as they all have the same name and all nodes are the same
+def individual_get(filename, bound_socket):
+    task = messages_pb2.getdata_request()
+    # individual_bound_socket send task 
+    # listen for response on individual_response_socket
+    # return the retrieved file
+    return
+#
+
 def get_file(part1_filenames, part2_filenames, data_req_socket, response_socket):
     """
     Implements retrieving a file that is stored with RAID 1 using 4 storage nodes.

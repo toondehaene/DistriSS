@@ -58,6 +58,7 @@ if is_raspberry_pi():
     subscriber_address = "tcp://192.168.0."+server_address+":5559"
     repair_subscriber_address = "tcp://192.168.0."+server_address+":5560"
     repair_sender_address = "tcp://192.168.0."+server_address+":5561"
+    check_repair_remote_address = "tcp://192.168.0." +server_address+"6100"
 else:
     # On the local computer: use localhost
     pull_address = "tcp://localhost:5557"
@@ -102,12 +103,20 @@ delegate_remote = context.socket(zmq.PUSH)
 delegate_remote.connect(delegate_connect_address)
 print("connected to remote delegate socket")
 
+#sockets for repair check       
+# #TODO: could have used the repair_subscriber socket, but made my own. clean up after.
+check_repair_receive = context.socket(zmq.SUB)
+check_repair_receive.connect(check_repair_remote_address)
+subscriber.setsockopt(zmq.SUBSCRIBE, b'') #receive all
+
+
 # Use a Poller to monitor three sockets at the same time
 poller = zmq.Poller()
 poller.register(receiver, zmq.POLLIN)
 poller.register(subscriber, zmq.POLLIN)
 poller.register(repair_subscriber, zmq.POLLIN)
 poller.register(delegate_bound, zmq.POLLIN)
+poller.register(check_repair_receive, zmq.POLLIN)
 
 
 while True:
@@ -117,11 +126,30 @@ while True:
     except KeyboardInterrupt:
         break
     pass
+    if check_repair_receive in socks:
+        # Incoming message on the socket where we check if files are still there.
+        msg = delegate_bound.recv_multipart()
+        # Parse the Protobuf message from the first frame
+        task = messages_pb2.storedata_request()
+        task.ParseFromString(msg[0])
+        # data = .. no data here
+        print("Got a repair check for this list of filenames: "+str(task.filename))
+        names = [a.strip("'") for a in task.filename.strip('][').split(', ')]
+
+        # Check whether the files are on the disk if no repair
+        for file in names:
+            fragment_found = os.path.exists(data_folder+'/'+file) and \
+                os.path.isfile(data_folder+'/'+file)
+            if fragment_found:
+                continue
+            else: 
+                #TODO: repair this mf, current plan: asks previous node in the circle for their copy @Romain
+                print("MISSING FILE: "+file)
 
     # At this point one or multiple sockets may have received a message
     if delegate_bound in socks:
         print("ENTERED DELEGATE BOUND IF BRANCH")
-        # Incoming message on the 'receiver' socket where we get tasks to store a chunk
+        # Incoming message on the 'delegate' socket where we get tasks to store a chunk
         msg = delegate_bound.recv_multipart()
         # Parse the Protobuf message from the first frame
         task = messages_pb2.storedata_request()

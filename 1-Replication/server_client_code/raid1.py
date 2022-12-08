@@ -96,9 +96,9 @@ def store_file_delegated(file_data, delegate_socket, response_socket, filenames)
     #     ])
 
     # Wait until we receive 1 response from the worker
-    for task_nbr in range(num):
-        resp = response_socket.recv_string()
-        print('Received: %s' % resp)
+    # for task_nbr in range(num):
+    #     resp = response_socket.recv_string()
+    #     print('Received: %s' % resp)
     
     # Return the chunk names of each replica
     return file_data_name
@@ -109,12 +109,20 @@ def store_file_delegated(file_data, delegate_socket, response_socket, filenames)
 # Each send() on this socket will target the next connected, wrapping around
 # We want to replace the normal get_file() by this one because we don't want to
 # use publish / subscibe to get files as they all have the same name and all nodes are the same
-def individual_get(filename, bound_socket):
+def individual_get(filename, bound_socket,individual_response_socket):
     task = messages_pb2.getdata_request()
+    task.filename = filename
+    bound_socket.send(
+        task.SerializeToString()
+    )
     # individual_bound_socket send task 
     # listen for response on individual_response_socket
+    result = individual_response_socket.recv_multipart() #this is blocking i guess?
+    task = messages_pb2.storedata_request()
+    task.ParseFromString(result[0])
+    print(f"received file with name: {task.filename}")
     # return the retrieved file
-    return
+    return result[1]
 #
 
 def get_file(part1_filenames, part2_filenames, data_req_socket, response_socket):

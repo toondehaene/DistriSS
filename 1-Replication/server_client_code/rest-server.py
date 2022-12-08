@@ -51,9 +51,17 @@ def close_db(e=None):
 # Initiate ZMQ sockets
 context = zmq.Context()
 
-# Socket to send tasks to Storage Nodes
+# Socket to send store tasks to Storage Nodes
 send_task_socket = context.socket(zmq.PUSH)
 send_task_socket.bind("tcp://*:5557")
+
+# Socket to send get tasks to Storage Nodes
+send_get_socket = context.socket(zmq.PUSH)
+send_get_socket.bind("tcp://*:6200")
+
+# Socket to receive files from Storage Nodes after get 
+receive_files_socket = context.socket(zmq.PULL)
+receive_files_socket.bind("tcp://*:6300")
 
 # Socket to receive messages from Storage Nodes
 response_socket = context.socket(zmq.PULL)
@@ -63,7 +71,7 @@ response_socket.bind("tcp://*:5558")
 data_req_socket = context.socket(zmq.PUB)
 data_req_socket.bind("tcp://*:5559")
 
-# Publisher socket for fragment repair broadcasts
+# Publisher socket for file repair broadcasts
 repair_socket = context.socket(zmq.PUB)
 repair_socket.bind("tcp://*:5560")
 
@@ -91,7 +99,6 @@ print("Listening to ZMQ messages on tcp://*:5558 and tcp://*:5561")
 app = Flask(__name__)
 # Close the DB connection after serving the request
 app.teardown_appcontext(close_db)
-
 
 @app.route('/')
 def hello():
@@ -136,15 +143,17 @@ def download_file(file_id):
 
     if f['storage_mode'] == 'raid1':
 
-        part1_filenames = storage_details['part1_filenames']
-        part2_filenames = storage_details['part2_filenames']
+        part1_filename = storage_details['part1_filenames'][0]
 
-        file_data = raid1.get_file(
-            part1_filenames,
-            part2_filenames,
-            data_req_socket,
-            response_socket
+        file_data = raid1.individual_get(
+            part1_filename, send_get_socket, receive_files_socket
         )
+        # file_data = raid1.get_file(
+        #     part1_filenames,
+        #     part2_filenames,
+        #     data_req_socket,
+        #     response_socket
+        # )
 
     elif f['storage_mode'] == 'erasure_coding_rs':
 
@@ -214,7 +223,7 @@ def delete_file(file_id):
     return make_response('TODO: implement this endpoint', 404)
 #
 
-
+@app.route('/trigger_repair', methods=['POST'])
 def check_repair_needed() -> bool:
     # send out all filenames all nodes should have
     db = get_db()
@@ -232,7 +241,7 @@ def check_repair_needed() -> bool:
     check_repair_socket.send(
         task.SerializeToString() #no data in this one
     )
-    return False
+    return make_response('Repair triggered', 200)
     #(we don't expect a response or anything, the nodes will act by themselves if they miss a file.)
 #
 

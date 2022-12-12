@@ -12,7 +12,7 @@ import messages_pb2
 import json
 import time
 
-STORAGE_NODES_NUM = 4
+STORAGE_NODES_NUM = 1
 
 RS_CAUCHY_COEFFS = [
     bytearray([253, 126, 255, 127]),
@@ -21,20 +21,26 @@ RS_CAUCHY_COEFFS = [
     bytearray([127, 255, 126, 253])
 ]
 
-def store_file(file_data, max_erasures, send_task_socket, response_socket):
-    """
-    Store a file using Reed Solomon erasure coding, protecting it against 'max_erasures' 
-    unavailable storage nodes. 
-    The erasure coding part codes are the customized version of the 'encode_decode_using_coefficients'
-    example of kodo-python, where you can find a detailed description of each step.
+def delegate_filestoring(file_data, max_erasures, socket):
+    fragment_names = []
+    for _ in range(STORAGE_NODES_NUM):      
+        name = random_string(8)
+        fragment_names.append(name)
 
-    :param file_data: The file contents to be stored as a Python bytearray 
-    :param max_erasures: How many storage node failures should the data survive
-    :param send_task_socket: A ZMQ PUSH socket to the storage nodes
-    :param response_socket: A ZMQ PULL socket where the storage nodes respond
-    :return: A list of the coded fragment names, e.g. (c1,c2,c3,c4)
-    """
+    task = messages_pb2.delegate_request()
+    task.max_erasures = max_erasures
 
+    for name in fragment_names:
+        task.filenames.append(name)
+    
+    socket.send_multipart([
+        task.SerializeToString(),
+        file_data
+    ])
+
+    return fragment_names
+
+def store_file(file_data, max_erasures, send_task_socket, filenames=[]):
     # Measure time tp decode
     startTime = time.perf_counter()
    
@@ -58,11 +64,19 @@ def store_file(file_data, max_erasures, send_task_socket, response_socket):
     for i in range(STORAGE_NODES_NUM):
         # Select the next Reed Solomon coefficient vector 
         coefficients = RS_CAUCHY_COEFFS[i]
+
         # Generate a coded fragment with these coefficients 
         # (trim the coeffs to the actual length we need)
         encoder.encode_symbol(symbol, coefficients[:symbols])
+
         # Generate a random name for it and save
-        name = random_string(8)
+        try:
+            name = filenames[i]
+            print(name)
+        except:
+            name = random_string(8)
+            print("RANDOM NAME")
+
         fragment_names.append(name)
         
         # Send a Protobuf STORE DATA request to the Storage Nodes
@@ -78,10 +92,12 @@ def store_file(file_data, max_erasures, send_task_socket, response_socket):
 
     ms_encoding = (endTime-startTime) * 1000
     
+    #print("Waiting for response.")
     # Wait until we receive a response for every fragment
-    for task_nbr in range(STORAGE_NODES_NUM):
-        resp = response_socket.recv_string()
-        print('Received: %s' % resp)
+    #for task_nbr in range(STORAGE_NODES_NUM):
+        #print("Started response loop")
+        #resp = response_socket.recv_string()
+        #print('Received: %s' % resp)
 
     return fragment_names, ms_encoding
 #

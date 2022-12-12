@@ -5,6 +5,12 @@ message storedata_request
     string filename = 1;
 }
 
+message delegate_request
+{
+    repeated string filenames = 1;
+    int32 max_erasures = 2;
+}
+
 message getdata_request
 {
     string filename = 1;

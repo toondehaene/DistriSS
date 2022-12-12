@@ -5,6 +5,7 @@ Storage Node
 """
 import zmq
 import messages_pb2
+import rs
 
 import sys
 import os
@@ -41,35 +42,51 @@ except FileNotFoundError:
         print("New ID generated and saved to file: %s" % node_id)
 
 if is_raspberry_pi():
+    print("HEJ")
     # On the Raspberry Pi: ask the user to input the last segment of the server IP address
-    server_address = input("Server address: 192.168.0.___ ")
-    pull_address = "tcp://192.168.0."+server_address+":5557"
-    sender_address = "tcp://192.168.0."+server_address+":5558"
-    subscriber_address = "tcp://192.168.0."+server_address+":5559"
-    repair_subscriber_address = "tcp://192.168.0."+server_address+":5560"
-    repair_sender_address = "tcp://192.168.0."+server_address+":5561"
+    #server_address = input("Server address: 192.168.0.___ ")
+    #delegate_address = "tcp://192.168.0."+server_address+":5556"
+    #pull_address = "tcp://192.168.0."+server_address+":5557"
+    #sender_address = "tcp://192.168.0."+server_address+":5558"
+    #subscriber_address = "tcp://192.168.0."+server_address+":5559"
+    #repair_subscriber_address = "tcp://192.168.0."+server_address+":5560"
+    #repair_sender_address = "tcp://192.168.0."+server_address+":5561"
 else:
     # On the local computer: use localhost
-    pull_address = "tcp://localhost:5557"
-    push_address = "tcp://localhost:5558"
-    subscriber_address = "tcp://localhost:5559"
-    repair_subscriber_address = "tcp://localhost:5560"
-    repair_sender_address = "tcp://localhost:5561"
-    
+    #delegate_address = "tcp://localhost:5556"
+    pull_task_address = "tcp://localhost:5557"
+    #responder_address = "tcp://localhost:5558"
+    #get_fragment_address = "tcp://localhost:5559"
+    #repair_subscriber_address = "tcp://localhost:5560"
+    #repair_sender_address = "tcp://localhost:5561"
 
 context = zmq.Context()
 # Socket to receive Store Chunk messages from the controller
 receiver = context.socket(zmq.PULL)
-receiver.connect(pull_address)
-print("Listening on "+ pull_address)
+receiver.connect(pull_task_address)
+
+#sender = context.socket(zmq.PUSH)
+#sender.connect(get_fragment_address)
+
+#print("Listening on "+ save_fragment_address)
+
 # Socket to send results to the controller
-sender = context.socket(zmq.PUSH)
-sender.connect(push_address)
+#response_sender = context.socket(zmq.PUSH)
+#response_sender.connect(save_response_address)
+
+#response_receiver = context.socket(zmq.PULL)
+#response_receiver.connect(save_response_address)
+
+# Socket to receive Store Chunk messages from the controller
+#delegate = context.socket(zmq.PULL)
+#delegate.connect(delegate_address)
+
 # Socket to receive Get Chunk messages from the controller
-subscriber = context.socket(zmq.SUB)
-subscriber.connect(subscriber_address)
+#subscriber = context.socket(zmq.SUB)
+#subscriber.connect(get_fragment_address)
+
 # Receive every message (empty subscription)
-subscriber.setsockopt(zmq.SUBSCRIBE, b'')
+#subscriber.setsockopt(zmq.SUBSCRIBE, b'')
 
 # Socket to receive Repair request messages from the controller
 #repair_subscriber = context.socket(zmq.SUB)
@@ -79,71 +96,77 @@ subscriber.setsockopt(zmq.SUBSCRIBE, b'')
 
 # Subscription to individual messages goes here
 # TO BE DONE
-
 # Socket to send repair results to the controller
-repair_sender = context.socket(zmq.PUSH)
-repair_sender.connect(repair_sender_address)
+#repair_sender = context.socket(zmq.PUSH)
+#repair_sender.connect(repair_sender_address)
 
 
 # Use a Poller to monitor three sockets at the same time
 poller = zmq.Poller()
 poller.register(receiver, zmq.POLLIN)
-poller.register(subscriber, zmq.POLLIN)
+#poller.register(subscriber, zmq.POLLIN)
+#poller.register(delegate, zmq.POLLIN)
 #poller.register(repair_subscriber, zmq.POLLIN)
 
 while True:
     try:
         # Poll all sockets
         socks = dict(poller.poll())
+        print("HEJ")
     except KeyboardInterrupt:
         break
     pass
 
     # At this point one or multiple sockets may have received a message
-
+    #print("WADDIP")
     if receiver in socks:
-        # Incoming message on the 'receiver' socket where we get tasks to store a chunk
-        msg = receiver.recv_multipart()
-        # Parse the Protobuf message from the first frame
-        task = messages_pb2.storedata_request()
-        task.ParseFromString(msg[0])
+        resp = receiver.recv_string()
+        print('Received: %s' % resp)
 
-        # The data is the second frame
-        data = msg[1]
+        #proxy_sender.send_string("Distributing task")
 
-        print('Chunk to save: %s, size: %d bytes' % (task.filename, len(data)))
+        # print("RECEIVED")
+        # # Incoming message on the 'receiver' socket where we get tasks to store a chunk
+        # msg = receiver.recv_multipart()
+        # # Parse the Protobuf message from the first frame
+        # task = messages_pb2.storedata_request()
+        # task.ParseFromString(msg[0])
 
-        # Store the chunk with the given filename
-        chunk_local_path = data_folder+'/'+task.filename
-        write_file(data, chunk_local_path)
-        print("Chunk saved to %s" % chunk_local_path)
+        # # The data is the second frame
+        # data = msg[1]
 
-        # Send response (just the file name)
-        sender.send_string(task.filename)
+        # print('Chunk to save: %s, size: %d bytes' % (task.filename, len(data)))
+
+        # # Store the chunk with the given filename
+        # chunk_local_path = data_folder+'/'+task.filename
+        # write_file(data, chunk_local_path)
+        # print("Chunk saved to %s" % chunk_local_path)
+
+        # # Send response (just the file name)
+        # #sender.send_string(task.filename)
+
+    # if subscriber in socks:
+    #     # Incoming message on the 'subscriber' socket where we get retrieve requests
+    #     msg = subscriber.recv()
         
+    #     # Parse the Protobuf message from the first frame
+    #     task = messages_pb2.getdata_request()
+    #     task.ParseFromString(msg)
 
-    if subscriber in socks:
-        # Incoming message on the 'subscriber' socket where we get retrieve requests
-        msg = subscriber.recv()
-        
-        # Parse the Protobuf message from the first frame
-        task = messages_pb2.getdata_request()
-        task.ParseFromString(msg)
+    #     filename = task.filename
+    #     print("Data chunk request: %s" % filename)
 
-        filename = task.filename
-        print("Data chunk request: %s" % filename)
+    #     # Try to load the requested file from the local file system,
+    #     # send response only if found
+    #     try:
+    #         with open(data_folder+'/'+filename, "rb") as in_file:
+    #             print("Found chunk %s, sending it back" % filename)
 
-        # Try to load the requested file from the local file system,
-        # send response only if found
-        try:
-            with open(data_folder+'/'+filename, "rb") as in_file:
-                print("Found chunk %s, sending it back" % filename)
-
-                sender.send_multipart([
-                    bytes(filename, 'utf-8'),
-                    in_file.read()
-                ])
-        except FileNotFoundError:
-            # This is OK here
-            pass
+    #             sender.send_multipart([
+    #                 bytes(filename, 'utf-8'),
+    #                 in_file.read()
+    #             ])
+    #     except FileNotFoundError:
+    #         # This is OK here
+    #         pass
 #

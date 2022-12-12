@@ -9,6 +9,8 @@ import logging
 import rs
 import threading
 import utils
+import messages_pb2
+import sys
 
 def get_db():
     if 'db' not in g:
@@ -27,13 +29,19 @@ def close_db(e=None):
     if db is not None:
         db.close()
 
+delegate = sys.argv[1].lower() == 'true'
 
-# Initiate ZMQ sockets
 context = zmq.Context()
 
-# Socket to send tasks to Storage Nodes
-send_task_socket = context.socket(zmq.PUSH)
-send_task_socket.bind("tcp://*:5557")
+if(delegate==0):
+    print("Not using delegates")
+    send_task_socket = context.socket(zmq.PUSH)
+    send_task_socket.bind("tcp://*:5557")
+else:
+    # Socket to send tasks to Storage Nodes
+    print("Using delegates")
+    delegate_socket = context.socket(zmq.PUSH)
+    delegate_socket.bind("tcp://*:5556")
 
 # Socket to receive messages from Storage Nodes
 response_socket = context.socket(zmq.PULL)
@@ -46,7 +54,6 @@ data_req_socket.bind("tcp://*:5559")
 # Wait for all workers to start and connect. 
 time.sleep(1)
 print("Listening to ZMQ messages on tcp://*:5558 and tcp://*:5561")
-
 
 # Instantiate the Flask app (must be before the endpoint functions)
 app = Flask(__name__)
@@ -119,13 +126,24 @@ def add_files_multipart():
     # Reed Solomon code
     # Parse max_erasures (everything is a string in request.form, 
     # we need to convert to int manually), set default value to 1
+
     max_erasures = int(payload.get('max_erasures', 1))
     print("Max erasures: %d" % (max_erasures))
     
-    # Store the files
-    startTime = time.perf_counter()
-    fragment_names, encoding_time = rs.store_file(data, max_erasures, send_task_socket, response_socket)
-    endTime = time.perf_counter()
+    #______________________
+
+    if(delegate):
+        startTime = time.perf_counter()
+        fragment_names = rs.delegate_filestoring(data, max_erasures, delegate_socket)
+        endTime = time.perf_counter()
+        return make_response({"id": 0}, 500)
+    else:
+        # Store the files
+        startTime = time.perf_counter()
+        fragment_names, encoding_time = rs.store_file(data, max_erasures, send_task_socket)
+        endTime = time.perf_counter()
+
+    #______________________
 
     ms = (endTime-startTime) * 1000
 

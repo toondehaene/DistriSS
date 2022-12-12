@@ -34,10 +34,12 @@ def scheduling():
     print(res.text)
     
 def get(fileID):
-    return None
+    res = session.get(f'{base_url}/files/'+str(fileID), data={})
+    print(res)
     
     
-    
+"""   Tests for post files.
+  
 df_delegated = pd.DataFrame()
 for file in filenames:
     timings = []
@@ -61,36 +63,19 @@ for file in filenames:
     df_normal.insert(0,column = str(file), value=timings)
 df_normal.to_csv(r"./testresults/normal_upload_results.csv")
 print("done with normal uploads")
-# all_averages_delegated = []
+"""
+# Tests for get file
+#we know that file id 28-127 are 10kb, 128-227 are 100kb, 228-327 are 1mb, 328-427 are 10mb
 
-# for filename in filenames:
-#     average = []
-#     for i in range(100):
-#         time1 = time.time()
-#         post_delegated(filename)
-#         time2 = time.time()
-#         average.append(time2-time1)
-#     average.sort()
-#     average = average[5:95]
-#     average = sum(average) / len(average)
-#     all_averages_delegated.append(average)
-   
-# print("Post delegated results : 10k, 100k, 1Mb, 10Mb") 
-# print(all_averages_delegated)
-
-# all_averages_normal = []
-
-# for filename in filenames:
-#     average = []
-#     for i in range(100):
-#         time1 = time.time()
-#         post_normal(filename)
-#         time2 = time.time()
-#         average.append(time2-time1)
-#     average.sort()
-#     average = average[5:95]
-#     average = sum(average) / len(average)
-#     all_averages_normal.append(average)
-
-print("Post normal results : 10k, 100k, 1Mb, 10Mb") 
-# print(all_averages_normal)
+df_get = pd.DataFrame()
+ids = [30, 130, 230, 330]
+for id in ids:
+    timings = []
+    for i in range(100):
+        time1 = time.time()
+        get(id)
+        time2 = time.time()
+        timings.append(time2-time1)
+    df_get.insert(0,column = str(id), value=timings)
+df_get.to_csv(r"./testresults/get_results.csv")
+print("done with get")

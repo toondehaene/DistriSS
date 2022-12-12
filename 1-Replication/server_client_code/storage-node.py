@@ -135,7 +135,7 @@ print("connected to remote delegate repair socket")
 # #TODO: could have used the repair_subscriber socket, but made my own. clean up after.
 check_repair_receive = context.socket(zmq.SUB)
 check_repair_receive.connect(check_repair_remote_address)
-subscriber.setsockopt(zmq.SUBSCRIBE, b'') #receive all
+check_repair_receive.setsockopt(zmq.SUBSCRIBE, b'') #receive all
 
 
 # Use a Poller to monitor three sockets at the same time
@@ -204,13 +204,14 @@ while True:
              
         
     if check_repair_receive in socks:
+        print("Got a repair check on the SUBSCRIBER")
         # Incoming message on the socket where we check if files are still there.
-        msg = delegate_bound.recv_multipart()
+        msg = check_repair_receive.recv_multipart()
         # Parse the Protobuf message from the first frame
         task = messages_pb2.getdata_request()
         task.ParseFromString(msg[0])
         # data = .. no data here
-        print("Got a repair check for this list of filenames: "+str(task.filename))
+        print("for this list of filenames: "+str(task.filename))
         names = [a.strip("'") for a in task.filename.strip('][').split(', ')]
         repair_files(names)
 

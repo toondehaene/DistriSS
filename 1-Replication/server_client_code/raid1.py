@@ -72,9 +72,9 @@ def store_file_delegated(file_data, delegate_socket, response_socket, filenames)
     # file_data_2 = file_data[math.ceil(size/2.0):]
 
     # Generate a file name
-    file_data_name = random_string(8)
+    #file_data_name = random_string(8)
     # file_data_2_names = [random_string(8), random_string(8)]
-    print("Filename: %s", file_data_name)
+    #print("Filename: %s", file_data_name)
     # print("Filenames for part 2: %s" % file_data_2_names)
 
     # Send 1 'store data' Protobuf requests with the file name
@@ -101,7 +101,7 @@ def store_file_delegated(file_data, delegate_socket, response_socket, filenames)
     #     print('Received: %s' % resp)
     
     # Return the chunk names of each replica
-    return file_data_name
+    return task.filename
 #
 
 # TODO: write this

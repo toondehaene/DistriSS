@@ -3,7 +3,7 @@ Aarhus University - Distributed Storage course - Lab 6
 
 REST API + RAID Controller
 """
-from flask import Flask, make_response, g, request, send_file
+from flask import Flask, make_response, g, request, send_file, redirect, url_for
 import sqlite3
 import base64
 import random
@@ -17,6 +17,8 @@ import messages_pb2  # Generated Protobuf messages
 import io  # For sending binary data in a HTTP response
 import logging
 
+import sched
+from threading import Thread
 # from apscheduler.schedulers.background import BackgroundScheduler # automated repair
 import atexit  # unregister scheduler at app exit
 
@@ -143,7 +145,7 @@ def download_file(file_id):
 
     if f['storage_mode'] == 'raid1':
 
-        part1_filename = storage_details['part1_filenames'][0]
+        part1_filename = storage_details['part1_filenames']
 
         file_data = raid1.individual_get(
             part1_filename, send_get_socket, receive_files_socket
@@ -224,7 +226,7 @@ def delete_file(file_id):
 #
 
 @app.route('/trigger_repair', methods=['POST'])
-def check_repair_needed() -> bool:
+def trigger_repair() -> bool:
     # send out all filenames all nodes should have
     db = get_db()
     cursor = db.execute("SELECT * FROM `file`")
@@ -237,10 +239,12 @@ def check_repair_needed() -> bool:
     files = [dict(file) for file in files]
     task = messages_pb2.getdata_request()
     task.filename = str([filedict["filename"] for filedict in files])
+    print("Filenames : " + task.filename)
 
     check_repair_socket.send(
         task.SerializeToString() #no data in this one
     )
+    print("sending a publisher message")
     return make_response('Repair triggered', 200)
     #(we don't expect a response or anything, the nodes will act by themselves if they miss a file.)
 #
@@ -272,7 +276,9 @@ def add_files_delegated():
     storage_mode = payload.get('storage', 'raid1')
     print("Storage mode: %s" % storage_mode)
     # TODO : randomize the name :) (for security lol)
-    filenames = [filename] * 4
+    randomized_name = random_string(8)
+    print("Filename : %s" % randomized_name)
+    filenames = [randomized_name] * 4
     if storage_mode == 'raid1':
         global lst_delegate_socket
         file_data_1_names = raid1.store_file_delegated(
@@ -280,7 +286,7 @@ def add_files_delegated():
         lst_delegate_socket = lst_delegate_socket[1:] + \
             lst_delegate_socket[0:1]
         storage_details = {
-            "part1_filenames": filenames  # to store all the != filenames into db
+            "part1_filenames": randomized_name  # to store all the != filenames into db
         }
     else:
         logging.error("Unexpected storage mode: %s" % storage_mode)
@@ -291,7 +297,7 @@ def add_files_delegated():
     db = get_db()
     cursor = db.execute(
         "INSERT INTO `file`(`filename`, `size`, `content_type`, `storage_mode`, `storage_details`) VALUES (?,?,?,?,?)",
-        (filename, size, content_type, storage_mode, json.dumps(storage_details))
+        (randomized_name, size, content_type, storage_mode, json.dumps(storage_details))
     )
     db.commit()
 
@@ -434,7 +440,24 @@ scheduler.add_job(func=rs_automated_repair, trigger="interval", seconds=60)
 # Shut down the scheduler when exiting the app
 atexit.register(lambda: scheduler.shutdown())
 """
+s = sched.scheduler(time.time, time.sleep)
+# Schedule the event to run after 60 seconds
+def repair_event_func():
+    with app.app_context():
+        print("repair event triggered")
+        s.enter(15, 1, repair_event_func)
+        trigger_repair()
+        # check_repair_needed()
 
+
+
+@app.route("/start_scheduling",methods=["POST"])
+def start_scheduling():
+    s.enter(5, 1,repair_event_func)
+    # Start the scheduler in a separate thread
+    t = Thread(target=s.run)
+    t.start()
+    return make_response("repair event scheduling started",200)
 
 @app.errorhandler(500)
 def server_error(e):

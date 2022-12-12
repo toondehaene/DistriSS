@@ -12,7 +12,7 @@ import messages_pb2
 import json
 import time
 
-STORAGE_NODES_NUM = 1
+STORAGE_NODES_NUM = 2
 
 RS_CAUCHY_COEFFS = [
     bytearray([253, 126, 255, 127]),
@@ -23,6 +23,7 @@ RS_CAUCHY_COEFFS = [
 
 def delegate_filestoring(file_data, max_erasures, socket):
     fragment_names = []
+
     for _ in range(STORAGE_NODES_NUM):      
         name = random_string(8)
         fragment_names.append(name)
@@ -33,6 +34,7 @@ def delegate_filestoring(file_data, max_erasures, socket):
     for name in fragment_names:
         task.filenames.append(name)
     
+    print(task.filenames)
     socket.send_multipart([
         task.SerializeToString(),
         file_data
@@ -73,6 +75,7 @@ def store_file(file_data, max_erasures, send_task_socket, filenames=[]):
         try:
             name = filenames[i]
             print(name)
+            print(i)
         except:
             name = random_string(8)
             print("RANDOM NAME")

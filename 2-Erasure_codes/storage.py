@@ -117,56 +117,44 @@ while True:
         break
     pass
 
-    # At this point one or multiple sockets may have received a message
-    #print("WADDIP")
     if receiver in socks:
-        resp = receiver.recv_string()
-        print('Received: %s' % resp)
+        print("RECEIVED")
+        # Incoming message on the 'receiver' socket where we get tasks to store a chunk
+        msg = receiver.recv_multipart()
+        # Parse the Protobuf message from the first frame
+        task = messages_pb2.storedata_request()
+        task.ParseFromString(msg[0])
 
-        #proxy_sender.send_string("Distributing task")
+        data = msg[1]
 
-        # print("RECEIVED")
-        # # Incoming message on the 'receiver' socket where we get tasks to store a chunk
-        # msg = receiver.recv_multipart()
-        # # Parse the Protobuf message from the first frame
-        # task = messages_pb2.storedata_request()
-        # task.ParseFromString(msg[0])
+        print('Chunk to save: %s, size: %d bytes' % (task.filename, len(data)))
 
-        # # The data is the second frame
-        # data = msg[1]
+        chunk_local_path = data_folder+'/'+task.filename
+        write_file(data, chunk_local_path)
+        print("Chunk saved to %s" % chunk_local_path)
 
-        # print('Chunk to save: %s, size: %d bytes' % (task.filename, len(data)))
-
-        # # Store the chunk with the given filename
-        # chunk_local_path = data_folder+'/'+task.filename
-        # write_file(data, chunk_local_path)
-        # print("Chunk saved to %s" % chunk_local_path)
-
-        # # Send response (just the file name)
-        # #sender.send_string(task.filename)
-
-    # if subscriber in socks:
-    #     # Incoming message on the 'subscriber' socket where we get retrieve requests
-    #     msg = subscriber.recv()
+#     if subscriber in socks:
+#         # Incoming message on the 'subscriber' socket where we get retrieve requests
+#         msg = subscriber.recv()
         
-    #     # Parse the Protobuf message from the first frame
-    #     task = messages_pb2.getdata_request()
-    #     task.ParseFromString(msg)
+#         # Parse the Protobuf message from the first frame
+#         task = messages_pb2.getdata_request()
+#         task.ParseFromString(msg)
 
-    #     filename = task.filename
-    #     print("Data chunk request: %s" % filename)
+#         filename = task.filename
+#         print("Data chunk request: %s" % filename)
 
-    #     # Try to load the requested file from the local file system,
-    #     # send response only if found
-    #     try:
-    #         with open(data_folder+'/'+filename, "rb") as in_file:
-    #             print("Found chunk %s, sending it back" % filename)
+#         # Try to load the requested file from the local file system,
+#         # send response only if found
+#         try:
+#             with open(data_folder+'/'+filename, "rb") as in_file:
+#                 print("Found chunk %s, sending it back" % filename)
 
-    #             sender.send_multipart([
-    #                 bytes(filename, 'utf-8'),
-    #                 in_file.read()
-    #             ])
-    #     except FileNotFoundError:
-    #         # This is OK here
-    #         pass
-#
+#                 sender.send_multipart([
+#                     bytes(filename, 'utf-8'),
+#                     in_file.read()
+#                 ])
+#         except FileNotFoundError:
+#             # This is OK here
+#             pass
+# #

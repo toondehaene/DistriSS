@@ -59,11 +59,18 @@ while True:
     # At this point one or multiple sockets may have received a message
 
     if proxy_receiver in socks:
-        resp = proxy_receiver.recv_string()
-        print('Received: %s' % resp)
+        print("Got request")
+        # Incoming message on the 'receiver' socket where we get tasks to store a chunk
+        msg = proxy_receiver.recv_multipart()
 
-        proxy_sender.send_string("Distributing task")
+        # Parse the Protobuf message from the first frame
+        task = messages_pb2.storedata_request()
+        task.ParseFromString(msg[0])
+        data = msg[1]
 
-        #print("Received msg at proxy subscriber")
-        #proxy_sender.send_string("Publishing task from proxy")
-        #print("Published message at proxy publisher")
+        proxy_sender.send_multipart([
+            task.SerializeToString(),
+            data
+        ])
+
+        print("Done distributing from proxy")

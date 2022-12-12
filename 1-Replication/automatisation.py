@@ -25,7 +25,7 @@ def post_normal(filename):
     res = session.post(f'{base_url}/files_mp', data={'storage': 'raid1', 'filename': 'test'}, files=file)
     content = res.content
     id = json.loads(content)["id"]
-    print(id)
+    print(json.loads(res.content))
     return json.loads(res.content)
 
     
@@ -44,7 +44,7 @@ def get_server_timing(fileID):
     return json.loads(res.content)
     
 
-"""
+
 df_delegated = pd.DataFrame()
 df_leadtiming_delegated = pd.DataFrame()
 df_lasttiming_delegated = pd.DataFrame()
@@ -62,12 +62,12 @@ for file in filenames:
     df_delegated.insert(0,column = str(file), value=timings)
     df_leadtiming_delegated.insert(0,column = str(file), value=leadtimings)
     df_lasttiming_delegated.insert(0,column = str(file), value=lasttimings)
-df_delegated.to_csv(r"./testresults/delegated_upload_results.csv")
-df_leadtiming_delegated.to_csv(r"./testresults/delegated_lead_results.csv")
-df_lasttiming_delegated.to_csv(r"./testresults/delegated_last_results.csv")
+df_delegated.to_csv(r"./testresults/delegated_upload_results_k2.csv")
+df_leadtiming_delegated.to_csv(r"./testresults/delegated_lead_results_k2.csv")
+df_lasttiming_delegated.to_csv(r"./testresults/delegated_last_results_k2.csv")
 
 print("done with delegated uploads")
-"""
+
 
 df_normal = pd.DataFrame()
 df_leadtiming_normal = pd.DataFrame()
@@ -79,7 +79,6 @@ for file in filenames:
     for i in range(100):
         time1 = time.time()
         jsonresult = post_normal(file)
-        print(jsonresult)
         time2 = time.time()
         timings.append(time2-time1)
         leadtimings.append(float(jsonresult["lead_node_done"]))
@@ -87,9 +86,9 @@ for file in filenames:
     df_normal.insert(0,column = str(file), value=timings)
     df_leadtiming_normal.insert(0,column = str(file), value=leadtimings)
     df_lasttiming_normal.insert(0,column = str(file), value=lasttimings)
-df_normal.to_csv(r"./testresults/normal_upload_results.csv")
-df_leadtiming_normal.to_csv(r"./testresults/normal_lead_results.csv")
-df_lasttiming_normal.to_csv(r"./testresults/normal_last_results.csv")
+df_normal.to_csv(r"./testresults/normal_upload_results_k2.csv")
+df_leadtiming_normal.to_csv(r"./testresults/normal_lead_results_k2.csv")
+df_lasttiming_normal.to_csv(r"./testresults/normal_last_results_k2.csv")
 
 # Tests for get file
 #we know that file id 28-127 are 10kb, 128-227 are 100kb, 228-327 are 1mb, 328-427 are 10mb

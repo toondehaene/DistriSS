@@ -276,10 +276,9 @@ def add_files_delegated():
     # Read the requested storage mode from the form (default value: 'raid1')
     storage_mode = payload.get('storage', 'raid1')
     print("Storage mode: %s" % storage_mode)
-    # TODO : randomize the name :) (for security lol)
     randomized_name = random_string(8)
     print("Filename : %s" % randomized_name)
-    filenames = [randomized_name] * 3       #TODO : modify here for k
+    filenames = [randomized_name] * 4       #TODO : modify here for k
     if storage_mode == 'raid1':
         global lst_delegate_socket
         file_data_1_names = raid1.store_file_delegated(
@@ -380,10 +379,6 @@ def add_files_multipart():
         (file_data_1_names, size, content_type, storage_mode, json.dumps(storage_details))
     )
     db.commit()
-    while(True):
-        last_one_res = response_socket.recv_string()
-        if last_one_res == "LAST_OK":
-            break
     t3 = time.time()
 
     return make_response({"id": cursor.lastrowid, "lead_node_done" : (t2-t1), "last_node_done" : (t3-t1)}, 201)

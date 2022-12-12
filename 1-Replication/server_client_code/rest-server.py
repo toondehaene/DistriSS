@@ -369,7 +369,7 @@ def add_files_multipart():
     db = get_db()
     cursor = db.execute(
         "INSERT INTO `file`(`filename`, `size`, `content_type`, `storage_mode`, `storage_details`) VALUES (?,?,?,?,?)",
-        (filename, size, content_type, storage_mode, json.dumps(storage_details))
+        (file_data_1_names, size, content_type, storage_mode, json.dumps(storage_details))
     )
     db.commit()
 

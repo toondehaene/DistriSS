@@ -250,6 +250,7 @@ while True:
             # send to delegate_remote
         else:
             print("List of filenames empty; finished.")
+            sender.send_string("LAST_OK")
             
     if delegate_repair_beasked in socks:
         print("ENTERED DELEGATE REPAIR BOUND IF BRANCH")

@@ -252,6 +252,7 @@ def trigger_repair() -> bool:
 
 @app.route('/files_mp_delegated', methods=['POST'])
 def add_files_delegated():
+    t1 = time.time()
     # Flask separates files from the other form fields
     payload = request.form
     files = request.files
@@ -278,7 +279,7 @@ def add_files_delegated():
     # TODO : randomize the name :) (for security lol)
     randomized_name = random_string(8)
     print("Filename : %s" % randomized_name)
-    filenames = [randomized_name] * 4
+    filenames = [randomized_name] * 3       #TODO : modify here for k
     if storage_mode == 'raid1':
         global lst_delegate_socket
         file_data_1_names = raid1.store_file_delegated(
@@ -288,6 +289,7 @@ def add_files_delegated():
         storage_details = {
             "part1_filenames": randomized_name  # to store all the != filenames into db
         }
+        t2 = time.time()
     else:
         logging.error("Unexpected storage mode: %s" % storage_mode)
         return make_response("Wrong storage mode", 400)
@@ -300,13 +302,18 @@ def add_files_delegated():
         (randomized_name, size, content_type, storage_mode, json.dumps(storage_details))
     )
     db.commit()
-
-    return make_response({"id": cursor.lastrowid}, 201)
+    while(True):
+        last_one_res = response_socket.recv_string()
+        if last_one_res == "LAST_OK":
+            break
+    t3 = time.time()
+    return make_response({"id": cursor.lastrowid, "lead_node_done" : (t2-t1), "last_node_done" : (t3-t1)}, 201)
 #
 
 
 @app.route('/files_mp', methods=['POST'])
 def add_files_multipart():
+    t1 = time.time()
     # Flask separates files from the other form fields
     payload = request.form
     files = request.files
@@ -338,6 +345,7 @@ def add_files_multipart():
         storage_details = {
             "part1_filenames": file_data_1_names
         }
+        t2 = time.time()
 
     elif storage_mode == 'erasure_coding_rs':
         # Reed Solomon code
@@ -372,8 +380,13 @@ def add_files_multipart():
         (file_data_1_names, size, content_type, storage_mode, json.dumps(storage_details))
     )
     db.commit()
+    while(True):
+        last_one_res = response_socket.recv_string()
+        if last_one_res == "LAST_OK":
+            break
+    t3 = time.time()
 
-    return make_response({"id": cursor.lastrowid}, 201)
+    return make_response({"id": cursor.lastrowid, "lead_node_done" : (t2-t1), "last_node_done" : (t3-t1)}, 201)
 #
 
 

@@ -15,7 +15,7 @@ def store_file(file_data, send_task_socket, response_socket):
     """
 
     size = len(file_data)
-    num = 4
+    num = 3                  #TODO: modify here for k
 
     # RAID 1: cut the file in half and store both halves 2x
     # file_data_1 = file_data[:math.ceil(size/2.0)]

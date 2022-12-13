@@ -1,5 +1,6 @@
 # exclude everything
 LARGE_DATA/*
+#1-Replication/testfiles/*
 
 # exception to the rule
 !LARGE_DATA/.gitkeep 

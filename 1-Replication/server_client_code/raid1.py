@@ -15,22 +15,22 @@ def store_file(file_data, send_task_socket, response_socket):
     """
 
     size = len(file_data)
-    num = 1
+    num = 4                  #TODO: modify here for k
 
     # RAID 1: cut the file in half and store both halves 2x
     # file_data_1 = file_data[:math.ceil(size/2.0)]
     # file_data_2 = file_data[math.ceil(size/2.0):]
 
     # Generate two random chunk names for each half
-    file_data_names = [random_string(8) for i in range(num)]
+    file_data_names = random_string(8)
     # file_data_2_names = [random_string(8), random_string(8)]
     print("Filenames: %s" % file_data_names)
     # print("Filenames for part 2: %s" % file_data_2_names)
 
     # Send 2 'store data' Protobuf requests with the first half and chunk names
-    for name in file_data_names:
+    for name in range(num):
         task = messages_pb2.storedata_request()
-        task.filename = name
+        task.filename = file_data_names
         send_task_socket.send_multipart([
             task.SerializeToString(),
             file_data
@@ -72,9 +72,9 @@ def store_file_delegated(file_data, delegate_socket, response_socket, filenames)
     # file_data_2 = file_data[math.ceil(size/2.0):]
 
     # Generate a file name
-    file_data_name = random_string(8)
+    #file_data_name = random_string(8)
     # file_data_2_names = [random_string(8), random_string(8)]
-    print("Filename: %s", file_data_name)
+    #print("Filename: %s", file_data_name)
     # print("Filenames for part 2: %s" % file_data_2_names)
 
     # Send 1 'store data' Protobuf requests with the file name
@@ -101,7 +101,7 @@ def store_file_delegated(file_data, delegate_socket, response_socket, filenames)
     #     print('Received: %s' % resp)
     
     # Return the chunk names of each replica
-    return file_data_name
+    return task.filename
 #
 
 # TODO: write this

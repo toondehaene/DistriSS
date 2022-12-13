@@ -130,6 +130,8 @@ def add_files_multipart():
         "max_erasures": max_erasures
     }
 
+    t2 = time.time() # TODO: Should this be below database?
+
     # Insert the File record in the DB
     import json
     db = get_db()
@@ -139,7 +141,6 @@ def add_files_multipart():
     )
     db.commit()
 
-    t2 = time.time()
 
     # Wait until we receive a response for every fragment
     print("Started response loop")

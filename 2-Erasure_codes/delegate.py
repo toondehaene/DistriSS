@@ -75,7 +75,7 @@ while True:
         filedata = bytearray(msg[1])
 
         print("Starting RS store")
-        fragment_names, encoding_time = rs.store_file(filedata, max_erasures, sender, filenames = filenames)
+        fragment_names, encoding_time, pure_enc_time = rs.store_file(filedata, max_erasures, sender, filenames = filenames)
         print("Done sending to proxy")
         
 #

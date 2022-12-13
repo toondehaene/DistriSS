@@ -9,7 +9,6 @@ import logging
 import rs
 import threading
 import utils
-import messages_pb2
 import sys
 
 def get_db():
@@ -33,31 +32,27 @@ delegate = sys.argv[1].lower() == 'true'
 
 context = zmq.Context()
 
-if(delegate==0):
-    print("Not using delegates")
-    send_task_socket = context.socket(zmq.PUSH)
-    send_task_socket.bind("tcp://*:5557")
-else:
-    # Socket to send tasks to Storage Nodes
+if(delegate):
     print("Using delegates")
     delegate_socket = context.socket(zmq.PUSH)
     delegate_socket.bind("tcp://*:5556")
+else:
+    print("Not using delegates")
+    send_task_socket = context.socket(zmq.PUSH)
+    send_task_socket.bind("tcp://*:5557")
 
-# Socket to receive messages from Storage Nodes
 response_socket = context.socket(zmq.PULL)
 response_socket.bind("tcp://*:5558")
 
-# Publisher socket for data request broadcasts
 data_req_socket = context.socket(zmq.PUB)
 data_req_socket.bind("tcp://*:5559")
 
-# Wait for all workers to start and connect. 
+save_done_socket = context.socket(zmq.PULL)
+save_done_socket.bind("tcp://*:5560")
+ 
 time.sleep(1)
-print("Listening to ZMQ messages on tcp://*:5558 and tcp://*:5561")
 
-# Instantiate the Flask app (must be before the endpoint functions)
 app = Flask(__name__)
-# Close the DB connection after serving the request
 app.teardown_appcontext(close_db)
 
 @app.route('/files/<int:file_id>',  methods=['GET'])
@@ -83,7 +78,7 @@ def get_file(file_id):
     coded_fragments = storage_details['coded_fragments']
     max_erasures = storage_details['max_erasures']
 
-    file_data, time_to_decode = rs.get_file(
+    file_data, fulltime, decodetime = rs.get_file(
         coded_fragments,
         max_erasures,
         f['size'],
@@ -91,15 +86,16 @@ def get_file(file_id):
         response_socket
     )
 
-    # Save measurement on thread
-    thread = threading.Thread(target=utils.writeMeasurement("DecodingMeasurements.txt", f['size'], time_to_decode))
-    thread.start()
+    response = send_file(io.BytesIO(file_data), mimetype=f['content_type'])
+    response.headers['fullDecTime'] = fulltime
+    response.headers['pureDecTime'] = decodetime
 
-    return send_file(io.BytesIO(file_data), mimetype=f['content_type'])
+    return response
 #
 
 @app.route('/files_mp', methods=['POST'])
 def add_files_multipart():
+    t1 = time.time()
     # Flask separates files from the other form fields
     payload = request.form
     files = request.files
@@ -117,41 +113,17 @@ def add_files_multipart():
     # Load the file contents into a bytearray and measure its size
     data = bytearray(file.read())
     size = len(data)
-    print("File received: %s, size: %d bytes, type: %s" % (filename, size, content_type))
     
-    # Read the requested storage mode from the form (default value: 'raid1')
     storage_mode = "RS"
-    print("Storage mode: %s" % storage_mode)
-
-    # Reed Solomon code
-    # Parse max_erasures (everything is a string in request.form, 
-    # we need to convert to int manually), set default value to 1
 
     max_erasures = int(payload.get('max_erasures', 1))
-    print("Max erasures: %d" % (max_erasures))
-    
-    #______________________
+    fullTime = -1
+    encodingTime = -1
 
     if(delegate):
-        startTime = time.perf_counter()
-        fragment_names = rs.delegate_filestoring(data, max_erasures, delegate_socket)
-        endTime = time.perf_counter()
-        return make_response({"id": 0}, 500)
+        fragment_names = rs.delegate_store_file(data, max_erasures, delegate_socket)
     else:
-        # Store the files
-        startTime = time.perf_counter()
-        fragment_names, encoding_time = rs.store_file(data, max_erasures, send_task_socket)
-        endTime = time.perf_counter()
-
-    #______________________
-
-    ms = (endTime-startTime) * 1000
-
-    # Save measurement on thread
-    thread1 = threading.Thread(target=utils.writeMeasurement("RedundancyMeasurements.txt", size, ms))
-    thread1.start()
-    thread2 = threading.Thread(target=utils.writeMeasurement("EncodingMeasurements.txt", size, encoding_time))
-    thread2.start()
+        fragment_names, fullTime, encodingTime = rs.store_file(data, max_erasures, send_task_socket)
 
     storage_details = {
         "coded_fragments": fragment_names,
@@ -167,10 +139,18 @@ def add_files_multipart():
     )
     db.commit()
 
-    return make_response({"id": cursor.lastrowid }, 201)
+    t2 = time.time()
+
+    # Wait until we receive a response for every fragment
+    print("Started response loop")
+    for _ in range(rs.STORAGE_NODES_NUM):
+        resp = save_done_socket.recv_string()
+        print('Received: %s' % resp)
+
+    t3 = time.time()
+
+    return make_response({"id": cursor.lastrowid, "lead_done": t2-t1, "last_done": t3-t1, "pure_enc": encodingTime, "full_enc": fullTime }, 201)
 #
-
-
 
 @app.errorhandler(500)
 def server_error(e):

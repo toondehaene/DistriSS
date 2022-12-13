@@ -9,10 +9,9 @@ import random
 import copy # for deepcopy
 from utils import random_string
 import messages_pb2
-import json
 import time
 
-STORAGE_NODES_NUM = 2
+STORAGE_NODES_NUM = 4
 
 RS_CAUCHY_COEFFS = [
     bytearray([253, 126, 255, 127]),
@@ -21,7 +20,7 @@ RS_CAUCHY_COEFFS = [
     bytearray([127, 255, 126, 253])
 ]
 
-def delegate_filestoring(file_data, max_erasures, socket):
+def delegate_store_file(file_data, max_erasures, socket):
     fragment_names = []
 
     for _ in range(STORAGE_NODES_NUM):      
@@ -34,7 +33,6 @@ def delegate_filestoring(file_data, max_erasures, socket):
     for name in fragment_names:
         task.filenames.append(name)
     
-    print(task.filenames)
     socket.send_multipart([
         task.SerializeToString(),
         file_data
@@ -42,11 +40,7 @@ def delegate_filestoring(file_data, max_erasures, socket):
 
     return fragment_names
 
-def store_file(file_data, max_erasures, send_task_socket, filenames=[]):
-    # Measure time tp decode
-    startTime = time.perf_counter()
-   
-    # Make sure we can realize max_erasures with 4 storage nodes
+def encode(file_data, max_erasures, filenames=[]):
     assert(max_erasures >= 0)
     assert(max_erasures < STORAGE_NODES_NUM)
 
@@ -61,7 +55,9 @@ def store_file(file_data, max_erasures, send_task_socket, filenames=[]):
     symbol = bytearray(encoder.symbol_bytes)
 
     fragment_names = []
-
+    tasks = []
+    datas = []
+    
     # Generate one coded fragment for each Storage Node
     for i in range(STORAGE_NODES_NUM):
         # Select the next Reed Solomon coefficient vector 
@@ -71,50 +67,41 @@ def store_file(file_data, max_erasures, send_task_socket, filenames=[]):
         # (trim the coeffs to the actual length we need)
         encoder.encode_symbol(symbol, coefficients[:symbols])
 
-        # Generate a random name for it and save
         try:
             name = filenames[i]
             print(name)
-            print(i)
         except:
             name = random_string(8)
-            print("RANDOM NAME")
 
         fragment_names.append(name)
-        
-        # Send a Protobuf STORE DATA request to the Storage Nodes
+    
         task = messages_pb2.storedata_request()
         task.filename = name
 
+        tasks.append(task.SerializeToString())
+        datas.append(coefficients[:symbols] + bytearray(symbol))
+    return tasks, datas, fragment_names
+
+def store_file(file_data, max_erasures, send_task_socket, filenames=[]):
+    t1 = time.perf_counter()
+    tasks, data, fragmentnames = encode(file_data, max_erasures, filenames)
+    t2 = time.perf_counter()
+
+    for i in range(STORAGE_NODES_NUM):
         send_task_socket.send_multipart([
-            task.SerializeToString(),
-            coefficients[:symbols] + bytearray(symbol)
+            tasks[i],
+            data[i]
         ])
+    t3 = time.perf_counter()
 
-    endTime = time.perf_counter()
+    fullEncodingTime = t3-t1
+    pureEncodingTime = t2-t1
 
-    ms_encoding = (endTime-startTime) * 1000
-    
-    #print("Waiting for response.")
-    # Wait until we receive a response for every fragment
-    #for task_nbr in range(STORAGE_NODES_NUM):
-        #print("Started response loop")
-        #resp = response_socket.recv_string()
-        #print('Received: %s' % resp)
-
-    return fragment_names, ms_encoding
+    return fragmentnames, fullEncodingTime, pureEncodingTime
 #
 
-
 def decode_file(symbols):
-    """
-    Decode a file using Reed Solomon decoder and the provided coded symbols.
-    The number of symbols must be the same as STORAGE_NODES_NUM - max_erasures.
-
-    :param symbols: coded symbols that contain both the coefficients and symbol data
-    :return: the decoded file data
-    """
-
+  
     # Reconstruct the original data with a decoder
     symbols_num = len(symbols)
     symbol_size = len(symbols[0]['data']) - symbols_num #subtract the coefficients' size
@@ -133,7 +120,6 @@ def decode_file(symbols):
 
     # Make sure the decoder successfully reconstructed the file
     assert(decoder.is_complete())
-    print("File decoded successfully")
 
     return data_out
 #
@@ -141,17 +127,8 @@ def decode_file(symbols):
 
 def get_file(coded_fragments, max_erasures, file_size,
              data_req_socket, response_socket):
-    """
-    Implements retrieving a file that is stored with Reed Solomon erasure coding
 
-    :param coded_fragments: Names of the coded fragments
-    :param max_erasures: Max erasures setting that was used when storing the file
-    :param file_size: The original data size. 
-    :param data_req_socket: A ZMQ SUB socket to request chunks from the storage nodes
-    :param response_socket: A ZMQ PULL socket where the storage nodes respond.
-    :return: A list of the random generated chunk names, e.g. (c1,c2), (c3,c4)
-    """
-    
+    t1 = time.perf_counter()
     # We need 4-max_erasures fragments to reconstruct the file, select this many 
     # by randomly removing 'max_erasures' elements from the given chunk names. 
     fragnames = copy.deepcopy(coded_fragments)
@@ -178,19 +155,13 @@ def get_file(coded_fragments, max_erasures, file_size,
         })
     print("All coded fragments received successfully")
 
-    # Measure time tp decode
-    startTime = time.perf_counter()
+    # Measure time to decode
+    t2 = time.perf_counter()
     file_data = decode_file(symbols)
-    endTime = time.perf_counter()
+    t3 = time.perf_counter()
 
-    ms_decoding = (endTime-startTime) * 1000
-
-    return file_data[:file_size], ms_decoding
-#
-
-# get_file_for_repair goes here
-# TO BE DONE
+    fullDecodingTime = t3-t1
+    pureDecodingTime = t3-t2
+    return file_data[:file_size], fullDecodingTime, pureDecodingTime
 
 
-# Repair process implementation goes here
-# TO BE DONE

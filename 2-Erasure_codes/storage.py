@@ -5,15 +5,11 @@ Storage Node
 """
 import zmq
 import messages_pb2
-import rs
 
 import sys
 import os
-import random
-import string
 
 from utils import random_string, write_file, is_raspberry_pi
-
 
 # Read the folder name where chunks should be stored from the first program argument
 # (or use the current folder if none was given)
@@ -55,70 +51,43 @@ else:
     # On the local computer: use localhost
     #delegate_address = "tcp://localhost:5556"
     pull_task_address = "tcp://localhost:5557"
-    #responder_address = "tcp://localhost:5558"
-    #get_fragment_address = "tcp://localhost:5559"
-    #repair_subscriber_address = "tcp://localhost:5560"
-    #repair_sender_address = "tcp://localhost:5561"
+    get_fragment_address = "tcp://localhost:5559"
+    send_fragment__address = "tcp://localhost:5558"
+    save_response_address = "tcp://localhost:5560"
 
 context = zmq.Context()
 # Socket to receive Store Chunk messages from the controller
 receiver = context.socket(zmq.PULL)
 receiver.connect(pull_task_address)
 
-#sender = context.socket(zmq.PUSH)
-#sender.connect(get_fragment_address)
+#Socket to receive Get Chunk messages from the controller
+subscriber = context.socket(zmq.SUB)
+subscriber.connect(get_fragment_address)
 
-#print("Listening on "+ save_fragment_address)
+#Receive every message (empty subscription)
+subscriber.setsockopt(zmq.SUBSCRIBE, b'')
+
+sender = context.socket(zmq.PUSH)
+sender.connect(send_fragment__address)
 
 # Socket to send results to the controller
-#response_sender = context.socket(zmq.PUSH)
-#response_sender.connect(save_response_address)
-
-#response_receiver = context.socket(zmq.PULL)
-#response_receiver.connect(save_response_address)
-
-# Socket to receive Store Chunk messages from the controller
-#delegate = context.socket(zmq.PULL)
-#delegate.connect(delegate_address)
-
-# Socket to receive Get Chunk messages from the controller
-#subscriber = context.socket(zmq.SUB)
-#subscriber.connect(get_fragment_address)
-
-# Receive every message (empty subscription)
-#subscriber.setsockopt(zmq.SUBSCRIBE, b'')
-
-# Socket to receive Repair request messages from the controller
-#repair_subscriber = context.socket(zmq.SUB)
-#repair_subscriber.connect(repair_subscriber_address)
-# Receive messages destined for all nodes
-#repair_subscriber.setsockopt(zmq.SUBSCRIBE, b'all_nodes')
-
-# Subscription to individual messages goes here
-# TO BE DONE
-# Socket to send repair results to the controller
-#repair_sender = context.socket(zmq.PUSH)
-#repair_sender.connect(repair_sender_address)
-
+response_sender = context.socket(zmq.PUSH)
+response_sender.connect(save_response_address)
 
 # Use a Poller to monitor three sockets at the same time
 poller = zmq.Poller()
 poller.register(receiver, zmq.POLLIN)
-#poller.register(subscriber, zmq.POLLIN)
-#poller.register(delegate, zmq.POLLIN)
-#poller.register(repair_subscriber, zmq.POLLIN)
+poller.register(subscriber, zmq.POLLIN)
 
 while True:
     try:
         # Poll all sockets
         socks = dict(poller.poll())
-        print("HEJ")
     except KeyboardInterrupt:
         break
     pass
 
     if receiver in socks:
-        print("RECEIVED")
         # Incoming message on the 'receiver' socket where we get tasks to store a chunk
         msg = receiver.recv_multipart()
         # Parse the Protobuf message from the first frame
@@ -132,29 +101,32 @@ while True:
         chunk_local_path = data_folder+'/'+task.filename
         write_file(data, chunk_local_path)
         print("Chunk saved to %s" % chunk_local_path)
-
-#     if subscriber in socks:
-#         # Incoming message on the 'subscriber' socket where we get retrieve requests
-#         msg = subscriber.recv()
         
-#         # Parse the Protobuf message from the first frame
-#         task = messages_pb2.getdata_request()
-#         task.ParseFromString(msg)
+        response_sender.send_string("Fragment saved")
 
-#         filename = task.filename
-#         print("Data chunk request: %s" % filename)
 
-#         # Try to load the requested file from the local file system,
-#         # send response only if found
-#         try:
-#             with open(data_folder+'/'+filename, "rb") as in_file:
-#                 print("Found chunk %s, sending it back" % filename)
+    if subscriber in socks:
+        # Incoming message on the 'subscriber' socket where we get retrieve requests
+        msg = subscriber.recv()
+        
+        # Parse the Protobuf message from the first frame
+        task = messages_pb2.getdata_request()
+        task.ParseFromString(msg)
 
-#                 sender.send_multipart([
-#                     bytes(filename, 'utf-8'),
-#                     in_file.read()
-#                 ])
-#         except FileNotFoundError:
-#             # This is OK here
-#             pass
-# #
+        filename = task.filename
+        print("Data chunk request: %s" % filename)
+
+        # Try to load the requested file from the local file system,
+        # send response only if found
+        try:
+            with open(data_folder+'/'+filename, "rb") as in_file:
+                print("Found chunk %s, sending it back" % filename)
+
+                sender.send_multipart([
+                    bytes(filename, 'utf-8'),
+                    in_file.read()
+                ])
+        except FileNotFoundError:
+            # This is OK here
+            pass
+#

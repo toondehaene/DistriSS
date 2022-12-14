@@ -144,7 +144,6 @@ def decode_file(symbols):
     return data_out
 #
 
-
 def get_file(coded_fragments, max_erasures, file_size,
              data_req_socket, response_socket):
 
@@ -167,7 +166,9 @@ def get_file(coded_fragments, max_erasures, file_size,
     # Receive all chunks and insert them into the symbols array
     symbols = []
     for _ in range(len(fragnames)):
+        print("Trying to get fragment")
         result = response_socket.recv_multipart()
+        print("Got fragment")
         # In this case we don't care about the received name, just use the 
         # data from the second frame
         symbols.append({

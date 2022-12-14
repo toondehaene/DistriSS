@@ -45,7 +45,7 @@ fragment_get.bind(fragment_request_address)
 fragment_response = context.socket(zmq.PULL)
 fragment_response.bind(fragment_response_address)
 
-delegate_response = context.socket(zmq.PUSH)
+delegate_response = context.socket(zmq.PUB)
 delegate_response.bind(delegate_response_address)
 
 # Use a Poller to monitor three sockets at the same time
@@ -91,7 +91,6 @@ while True:
 
             result = fragment_response.recv_multipart()
 
-            print("Got fragment")
             delegate_response.send_multipart([
                 result[0],
                 result[1]

@@ -36,8 +36,9 @@ receiver.connect(delegate_address)
 sender = context.socket(zmq.PUSH)
 sender.connect(proxy_send_address)
 
-proxy_response = context.socket(zmq.PULL)
+proxy_response = context.socket(zmq.SUB)
 proxy_response.connect(proxy_response_address)
+proxy_response.setsockopt(zmq.SUBSCRIBE, b'')
 
 lead_response = context.socket(zmq.PUSH)
 lead_response.connect(lead_response_address)

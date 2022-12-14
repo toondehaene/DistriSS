@@ -37,8 +37,9 @@ if(delegate):
     delegate_request_socket = context.socket(zmq.PUSH)
     delegate_request_socket.bind("tcp://*:5556")
     
-    delegate_response_socket = context.socket(zmq.PULL)
+    delegate_response_socket = context.socket(zmq.SUB)
     delegate_response_socket.bind("tcp://*:5551")
+    delegate_response_socket.setsockopt(zmq.SUBSCRIBE, b'')
 else:
     print("Starting regular API")
     save_file_socket = context.socket(zmq.PUSH)
@@ -90,8 +91,6 @@ def get_file(file_id):
             delegate_request_socket,
             delegate_response_socket
         )
-
-        print("Got a response")
     else:
         file_data, fulltime, decodetime = rs.get_file(
             coded_fragments,

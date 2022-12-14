@@ -26,6 +26,8 @@ def delegate_get_file(coded_fragments, max_erasures, file_size,
     task.max_erasures = max_erasures
     task.encoding = False
     task.file_size = file_size
+    request_id = random_string(8)
+    task.request_id = request_id
 
     for name in coded_fragments:
         task.filenames.append(name)
@@ -34,10 +36,21 @@ def delegate_get_file(coded_fragments, max_erasures, file_size,
         task.SerializeToString()
     )
 
-    print("Wainting for results")
-    result = response_socket.recv()
-    print("Got results")
-    return result
+    response_received = False
+    while(not response_received):
+        msg = response_socket.recv_multipart()
+        print("Got file response back from delegate")
+        response_task = messages_pb2.delegate_response()
+        response_task.ParseFromString(msg[0])
+        response_id = response_task.request_id
+
+        if(request_id == response_id):
+            response_received = True
+            print("Got answer, for the correct task")
+        else:
+            print("Got answer but not for this task")
+
+    return msg[1]
 
 def delegate_store_file(file_data, max_erasures, socket):
     fragment_names = []

@@ -9,11 +9,13 @@ message get_fragments_request
 {
     repeated string filenames = 1;
     int32 max_erasures = 2;
+    string request_id = 3;
 }
 
 message fragments_reponse {
     repeated string filenames = 1;
     repeated bytes chunks = 2;
+    string request_id = 3;
 }
 
 message delegate_request
@@ -22,4 +24,10 @@ message delegate_request
     int32 max_erasures = 2;
     int32 file_size = 3;
     bool encoding = 4;
+    string request_id = 5;
+}
+
+message delegate_response
+{
+    string request_id = 1;
 }

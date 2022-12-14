@@ -7,11 +7,6 @@ import zmq
 import messages_pb2
 import rs
 
-import sys
-import os
-import random
-import string
-
 from utils import is_raspberry_pi
 
 if is_raspberry_pi():
@@ -45,13 +40,13 @@ proxy_response = context.socket(zmq.SUB)
 proxy_response.connect(proxy_response_address)
 proxy_response.setsockopt(zmq.SUBSCRIBE, b'')
 
-lead_response = context.socket(zmq.PUSH)
+lead_response = context.socket(zmq.PUB)
 lead_response.connect(lead_response_address)
 
 poller = zmq.Poller()
 poller.register(receiver, zmq.POLLIN)
 
-print("Starting to listen to be a delegate")
+print("Delegate started")
 
 while True:
     try:
@@ -70,6 +65,7 @@ while True:
         isEncoding = task.encoding
         filenames = task.filenames
         max_erasures = task.max_erasures
+        request_id = task.request_id
 
         if(isEncoding):
             print("Received encoding delegation")
@@ -85,21 +81,27 @@ while True:
                 taskToSend.filenames.append(name)
 
             taskToSend.max_erasures = max_erasures
+            taskToSend.request_id = request_id
 
             sender_get.send(
                 taskToSend.SerializeToString()
             )
 
-            msg = proxy_response.recv()
-            print("Got shit back from proxy")
-            task = messages_pb2.fragments_reponse()
-            task.ParseFromString(msg)
+            response_received = False
+            while(not response_received):
+                msg = proxy_response.recv()
+                task = messages_pb2.fragments_reponse()
+                task.ParseFromString(msg)
+                response_id = task.request_id
+
+                if(request_id == response_id):
+                    response_received = True
+                    print("Got response, for the correct task")
+                else:
+                    print("Got response but not for this task")
 
             names = task.filenames
             data = task.chunks
-
-            print(filenames)
-            print(names)
 
             symbols = []
             for i in range(len(names)):
@@ -108,13 +110,17 @@ while True:
                     "data": bytearray(data[i])
                 })
 
+            response_task = messages_pb2.delegate_response()
+            response_task.request_id = request_id
+
             file_data = rs.decode_file(symbols)
             file_data = file_data[:file_size]
 
             print("Sending back to lead")
-            lead_response.send(
+            lead_response.send_multipart([
+                response_task.SerializeToString(),
                 file_data
-            )
+            ])
 
 
 

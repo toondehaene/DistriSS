@@ -53,6 +53,8 @@ poller = zmq.Poller()
 poller.register(proxy_receiver_save, zmq.POLLIN)
 poller.register(proxy_receiver_get, zmq.POLLIN)
 
+print("Proxy started")
+
 while True:
     try:
         # Poll all sockets
@@ -87,10 +89,12 @@ while True:
 
         filenames = task.filenames
         max_erasures = task.max_erasures
+        request_id = task.request_id
 
         chunknames, data = rs.get_fragments(filenames, max_erasures, fragment_get, fragment_response)
         print("Got all fragments, sending back to delegate")
         responseTask = messages_pb2.fragments_reponse()
+        responseTask.request_id = request_id
         
         for i in range(len(chunknames)):
             responseTask.filenames.append(chunknames[i])

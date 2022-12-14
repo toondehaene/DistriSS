@@ -89,7 +89,6 @@ def encode(file_data, max_erasures, filenames=[]):
 
         try:
             name = filenames[i]
-            print(name)
         except:
             name = random_string(8)
 
@@ -146,7 +145,8 @@ def decode_file(symbols):
 
 def get_fragments(coded_fragments, max_erasures, data_req_socket, response_socket):
     fragnames = copy.deepcopy(coded_fragments)
-
+    print(fragnames)
+    
     for i in range(max_erasures):
         fragnames.remove(random.choice(fragnames))
     

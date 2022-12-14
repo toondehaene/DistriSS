@@ -98,6 +98,9 @@ while True:
             names = task.filenames
             data = task.chunks
 
+            print(filenames)
+            print(names)
+
             symbols = []
             for i in range(len(names)):
                 symbols.append({

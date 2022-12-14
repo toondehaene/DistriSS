@@ -1,8 +1,9 @@
 syntax = "proto3";
 
-message storedata_request
+message fragment_request
 {
     string filename = 1;
+    bool is_store = 2;
 }
 
 message delegate_request
@@ -11,9 +12,4 @@ message delegate_request
     int32 max_erasures = 2;
     int32 file_size = 3;
     bool encoding = 4;
-}
-
-message getdata_request
-{
-    string filename = 1;
 }

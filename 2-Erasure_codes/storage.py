@@ -52,7 +52,7 @@ else:
     #delegate_address = "tcp://localhost:5556"
     pull_task_address = "tcp://localhost:5557"
     get_fragment_address = "tcp://localhost:5559"
-    send_fragment__address = "tcp://localhost:5558"
+    send_fragment_address = "tcp://localhost:5558"
     save_response_address = "tcp://localhost:5560"
 
 context = zmq.Context()
@@ -68,7 +68,7 @@ subscriber.connect(get_fragment_address)
 subscriber.setsockopt(zmq.SUBSCRIBE, b'')
 
 sender = context.socket(zmq.PUSH)
-sender.connect(send_fragment__address)
+sender.connect(send_fragment_address)
 
 # Socket to send results to the controller
 response_sender = context.socket(zmq.PUSH)
@@ -91,7 +91,7 @@ while True:
         # Incoming message on the 'receiver' socket where we get tasks to store a chunk
         msg = receiver.recv_multipart()
         # Parse the Protobuf message from the first frame
-        task = messages_pb2.storedata_request()
+        task = messages_pb2.fragment_request()
         task.ParseFromString(msg[0])
 
         data = msg[1]
@@ -110,7 +110,7 @@ while True:
         msg = subscriber.recv()
         
         # Parse the Protobuf message from the first frame
-        task = messages_pb2.getdata_request()
+        task = messages_pb2.fragment_request()
         task.ParseFromString(msg)
 
         filename = task.filename

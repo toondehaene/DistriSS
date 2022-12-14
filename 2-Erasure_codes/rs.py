@@ -20,6 +20,24 @@ RS_CAUCHY_COEFFS = [
     bytearray([127, 255, 126, 253])
 ]
 
+def delegate_get_file(coded_fragments, max_erasures, file_size,
+             data_req_socket, response_socket):
+    task = messages_pb2.delegate_request()
+    task.max_erasures = max_erasures
+    task.encoding = False
+    task.file_size = file_size
+
+    for name in coded_fragments:
+        task.filenames.append(name)
+
+    data_req_socket.send(
+        task.SerializeToString()
+    )
+
+    result = response_socket.recv()
+
+    return result
+
 def delegate_store_file(file_data, max_erasures, socket):
     fragment_names = []
 
@@ -76,8 +94,9 @@ def encode(file_data, max_erasures, filenames=[]):
 
         fragment_names.append(name)
     
-        task = messages_pb2.storedata_request()
+        task = messages_pb2.fragment_request()
         task.filename = name
+        task.is_store = True
 
         tasks.append(task.SerializeToString())
         datas.append(coefficients[:symbols] + bytearray(symbol))
@@ -138,8 +157,9 @@ def get_file(coded_fragments, max_erasures, file_size,
     
     # Request the coded fragments in parallel
     for name in fragnames:
-        task = messages_pb2.getdata_request()
+        task = messages_pb2.fragment_request()
         task.filename = name
+        task.is_store = False
         data_req_socket.send(
             task.SerializeToString()
             )

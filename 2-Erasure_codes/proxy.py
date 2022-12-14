@@ -29,6 +29,10 @@ else:
     #delegate_address = "tcp://localhost:5556"
     sender_address = "tcp://*:5557"
     receiver_address = "tcp://*:5555"
+    fragment_get_address = "tcp://*:5559"
+    fragment_response_address = "tcp://*:5558"
+    delegate_response_address = "tcp://*:5554"
+
     #repair_subscriber_address = "tcp://localhost:5560"
     #repair_sender_address = "tcp://localhost:5561"
 
@@ -39,6 +43,15 @@ proxy_receiver.bind(receiver_address)
 
 proxy_sender = context.socket(zmq.PUSH)
 proxy_sender.bind(sender_address)
+
+fragment_get = context.socket(zmq.PUB)
+fragment_get.bind(fragment_get_address)
+
+fragment_response = context.socket(zmq.PULL)
+fragment_response.bind(fragment_response_address)
+
+delegate_response = context.socket(zmq.PUSH)
+delegate_response.bind(delegate_response_address)
 
 # Use a Poller to monitor three sockets at the same time
 poller = zmq.Poller()
@@ -59,18 +72,38 @@ while True:
     # At this point one or multiple sockets may have received a message
 
     if proxy_receiver in socks:
+
         print("Got request")
         # Incoming message on the 'receiver' socket where we get tasks to store a chunk
         msg = proxy_receiver.recv_multipart()
 
         # Parse the Protobuf message from the first frame
-        task = messages_pb2.storedata_request()
+        task = messages_pb2.fragment_request()
         task.ParseFromString(msg[0])
-        data = msg[1]
+        is_store = task.is_store
 
-        proxy_sender.send_multipart([
-            task.SerializeToString(),
-            data
-        ])
+        if(is_store):
+            data = msg[1]
 
-        print("Done distributing from proxy")
+            proxy_sender.send_multipart([
+                task.SerializeToString(),
+                data
+            ])
+
+            print("Done distributing from proxy")
+        else:
+            print("WERE AT PROXY")
+            taskToSend = messages_pb2.fragment_request()
+            taskToSend.filename = task.filename
+            fragment_get.send(
+                taskToSend.SerializeToString()
+            )
+
+            result = fragment_response.recv_multipart()
+
+            print("GOT NODE RESPONSE")
+            delegate_response.send_multipart([
+                result[0],
+                result[1]
+            ])
+            

@@ -134,9 +134,9 @@ def add_files_multipart():
     encodingTime = -1
 
     if(delegate):
-        fragment_names = rs.delegate_store_file(data, max_erasures, delegate_socket)
+        fragment_names = rs.delegate_store_file(data, max_erasures, delegate_request_socket)
     else:
-        fragment_names, fullTime, encodingTime = rs.store_file(data, max_erasures, send_task_socket)
+        fragment_names, fullTime, encodingTime = rs.store_file(data, max_erasures, data_request_socket)
 
     storage_details = {
         "coded_fragments": fragment_names,

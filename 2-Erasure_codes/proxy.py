@@ -17,18 +17,17 @@ from utils import random_string, write_file, is_raspberry_pi
 if is_raspberry_pi():
     print("HEJ")
     # On the Raspberry Pi: ask the user to input the last segment of the server IP address
-    #server_address = input("Server address: 192.168.0.___ ")
-    #delegate_address = "tcp://192.168.0."+server_address+":5556"
-    #pull_address = "tcp://192.168.0."+server_address+":5557"
-    #sender_address = "tcp://192.168.0."+server_address+":5558"
-    #subscriber_address = "tcp://192.168.0."+server_address+":5559"
-    #repair_subscriber_address = "tcp://192.168.0."+server_address+":5560"
-    #repair_sender_address = "tcp://192.168.0."+server_address+":5561"
+    server_address = input("Server address: 192.168.0.___ ")
+    sender_address = "tcp://192.168.0."+server_address+":5557"
+    receiver_address = "tcp://192.168.0."+server_address+":5555"
+    fragment_request_address = "tcp://192.168.0."+server_address+":5559"
+    fragment_response_address = "tcp://192.168.0."+server_address+":5558"
+    delegate_response_address = "tcp://192.168.0."+server_address+":5554"
 else:
     # On the local computer: use localhost
     sender_address = "tcp://*:5557"
     receiver_address = "tcp://*:5555"
-    fragment_get_address = "tcp://*:5559"
+    fragment_request_address = "tcp://*:5559"
     fragment_response_address = "tcp://*:5558"
     delegate_response_address = "tcp://*:5554"
 
@@ -41,7 +40,7 @@ proxy_sender = context.socket(zmq.PUSH)
 proxy_sender.bind(sender_address)
 
 fragment_get = context.socket(zmq.PUB)
-fragment_get.bind(fragment_get_address)
+fragment_get.bind(fragment_request_address)
 
 fragment_response = context.socket(zmq.PULL)
 fragment_response.bind(fragment_response_address)

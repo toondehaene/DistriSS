@@ -40,13 +40,11 @@ except FileNotFoundError:
 if is_raspberry_pi():
     print("HEJ")
     # On the Raspberry Pi: ask the user to input the last segment of the server IP address
-    #server_address = input("Server address: 192.168.0.___ ")
-    #delegate_address = "tcp://192.168.0."+server_address+":5556"
-    #pull_address = "tcp://192.168.0."+server_address+":5557"
-    #sender_address = "tcp://192.168.0."+server_address+":5558"
-    #subscriber_address = "tcp://192.168.0."+server_address+":5559"
-    #repair_subscriber_address = "tcp://192.168.0."+server_address+":5560"
-    #repair_sender_address = "tcp://192.168.0."+server_address+":5561"
+    server_address = input("Server address: 192.168.0.___ ")
+    pull_task_address = "tcp://192.168.0."+server_address+":5557"
+    get_fragment_address = "tcp://192.168.0."+server_address+":5559"
+    send_fragment_address = "tcp://192.168.0."+server_address+":5558"
+    save_response_address = "tcp://192.168.0."+server_address+":5560"
 else:
     # On the local computer: use localhost
     pull_task_address = "tcp://localhost:5557"

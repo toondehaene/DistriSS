@@ -49,7 +49,6 @@ if is_raspberry_pi():
     #repair_sender_address = "tcp://192.168.0."+server_address+":5561"
 else:
     # On the local computer: use localhost
-    #delegate_address = "tcp://localhost:5556"
     pull_task_address = "tcp://localhost:5557"
     get_fragment_address = "tcp://localhost:5559"
     send_fragment_address = "tcp://localhost:5558"

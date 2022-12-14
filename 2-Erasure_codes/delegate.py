@@ -29,8 +29,6 @@ else:
     proxy_send_address = "tcp://localhost:5555"
     proxy_response_address = "tcp://localhost:5554"
     lead_response_address = "tcp://localhost:5551"
-    #repair_subscriber_address = "tcp://localhost:5560"
-    #repair_sender_address = "tcp://localhost:5561"
 
 context = zmq.Context()
 # Socket to receive Store Chunk messages from the controller
@@ -70,26 +68,11 @@ while True:
         max_erasures = task.max_erasures
 
         if(isEncoding):
-            print(filenames)
+            print("Received encoding delegation")
             filedata = bytearray(msg[1])
-
-            print("Starting RS store")
             fragment_names, encoding_time, pure_enc_time = rs.store_file(filedata, max_erasures, sender, filenames = filenames)
-            print("Done sending to proxy")
         else:
-            print("WERE AT DELEGATE")
-            #msg = receiver.recv_string()
-            # Send message to proxy
-            #print("Messaging proxy")
-            #sender.send_string("Message from delegate to proxy")
-
-            # Receive response from proxy
-            #resp = proxy_response.recv_string()
-
-            #print("Received answer from proxy, returning to lead")
-            #lead_response.send_string(resp)
-
-            #Requesting files through proxy
+            print("Received decoding delegation")
             file_size = task.file_size
             file_data, fulltime, decodetime = rs.get_file(
                filenames,
@@ -98,8 +81,6 @@ while True:
                sender,
                proxy_response
             )
-
-            print("GOT PROXY RESPONSE")
 
             lead_response.send(
                 file_data

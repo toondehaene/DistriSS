@@ -7,9 +7,9 @@ import time # For waiting a second for ZMQ connections
 import io # For sending binary data in a HTTP response
 import logging
 import rs
-import threading
 import utils
 import sys
+import json
 
 def get_db():
     if 'db' not in g:
@@ -33,22 +33,22 @@ delegate = sys.argv[1].lower() == 'true'
 context = zmq.Context()
 
 if(delegate):
-    print("Using delegates")
-    delegate_socket = context.socket(zmq.PUSH)
-    delegate_socket.bind("tcp://*:5556")
+    print("Starting API with delegation")
+    delegate_request_socket = context.socket(zmq.PUSH)
+    delegate_request_socket.bind("tcp://*:5556")
     
-    delegate_response = context.socket(zmq.PULL)
-    delegate_response.bind("tcp://*:5551")
+    delegate_response_socket = context.socket(zmq.PULL)
+    delegate_response_socket.bind("tcp://*:5551")
 else:
-    print("Not using delegates")
-    send_task_socket = context.socket(zmq.PUSH)
-    send_task_socket.bind("tcp://*:5557")
+    print("Starting regular API")
+    save_file_socket = context.socket(zmq.PUSH)
+    save_file_socket.bind("tcp://*:5557")
 
-    response_socket = context.socket(zmq.PULL)
-    response_socket.bind("tcp://*:5558")
+    data_response_socket = context.socket(zmq.PULL)
+    data_response_socket.bind("tcp://*:5558")
 
-    data_req_socket = context.socket(zmq.PUB)
-    data_req_socket.bind("tcp://*:5559")
+    data_request_socket = context.socket(zmq.PUB)
+    data_request_socket.bind("tcp://*:5559")
 
 save_done_socket = context.socket(zmq.PULL)
 save_done_socket.bind("tcp://*:5560")
@@ -75,28 +75,28 @@ def get_file(file_id):
     print("File requested: {}".format(f['filename']))
     
     # Parse the storage details JSON string
-    import json
     storage_details = json.loads(f['storage_details'])
 
     coded_fragments = storage_details['coded_fragments']
     max_erasures = storage_details['max_erasures']
     fulltime = -1
     decodetime = -1
+
     if(delegate):
         file_data = rs.delegate_get_file(
             coded_fragments,
             max_erasures,
             f['size'],
-            delegate_socket,
-            delegate_response
+            delegate_request_socket,
+            delegate_response_socket
         )
     else:
         file_data, fulltime, decodetime = rs.get_file(
             coded_fragments,
             max_erasures,
             f['size'],
-            data_req_socket, 
-            response_socket
+            data_request_socket, 
+            data_response_socket
         )
 
     response = send_file(io.BytesIO(file_data), mimetype=f['content_type'])
@@ -154,7 +154,6 @@ def add_files_multipart():
     )
     db.commit()
 
-
     # Wait until we receive a response for every fragment
     print("Started response loop")
     for _ in range(rs.STORAGE_NODES_NUM):
@@ -170,7 +169,6 @@ def add_files_multipart():
 def server_error(e):
     logging.exception("Internal error: %s", e)
     return make_response({"error": str(e)}, 500)
-
 
 # Start the Flask app (must be after the endpoint functions) 
 host_local_computer = "localhost" # Listen for connections on the local computer

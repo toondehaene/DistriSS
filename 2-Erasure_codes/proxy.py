@@ -26,15 +26,11 @@ if is_raspberry_pi():
     #repair_sender_address = "tcp://192.168.0."+server_address+":5561"
 else:
     # On the local computer: use localhost
-    #delegate_address = "tcp://localhost:5556"
     sender_address = "tcp://*:5557"
     receiver_address = "tcp://*:5555"
     fragment_get_address = "tcp://*:5559"
     fragment_response_address = "tcp://*:5558"
     delegate_response_address = "tcp://*:5554"
-
-    #repair_subscriber_address = "tcp://localhost:5560"
-    #repair_sender_address = "tcp://localhost:5561"
 
 context = zmq.Context()
 # Socket to receive Store Chunk messages from the controller
@@ -56,10 +52,6 @@ delegate_response.bind(delegate_response_address)
 # Use a Poller to monitor three sockets at the same time
 poller = zmq.Poller()
 poller.register(proxy_receiver, zmq.POLLIN)
-#poller.register(subscriber, zmq.POLLIN)
-#poller.register(delegate, zmq.POLLIN)
-#poller.register(repair_subscriber, zmq.POLLIN
-
 
 while True:
     try:
@@ -73,7 +65,6 @@ while True:
 
     if proxy_receiver in socks:
 
-        print("Got request")
         # Incoming message on the 'receiver' socket where we get tasks to store a chunk
         msg = proxy_receiver.recv_multipart()
 
@@ -83,6 +74,7 @@ while True:
         is_store = task.is_store
 
         if(is_store):
+            print("Proxy got save-fragment request")
             data = msg[1]
 
             proxy_sender.send_multipart([
@@ -90,9 +82,8 @@ while True:
                 data
             ])
 
-            print("Done distributing from proxy")
         else:
-            print("WERE AT PROXY")
+            print("Proxy got get-fragment request")
             taskToSend = messages_pb2.fragment_request()
             taskToSend.filename = task.filename
             fragment_get.send(
@@ -100,8 +91,6 @@ while True:
             )
 
             result = fragment_response.recv_multipart()
-
-            print("GOT NODE RESPONSE")
             delegate_response.send_multipart([
                 result[0],
                 result[1]

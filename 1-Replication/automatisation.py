@@ -7,7 +7,7 @@ import pandas as pd
 
 base_url = f'http://192.168.0.101:9000'
 session = requests.session()
-filenames =  ["file"+str(size)+"k.raw" for size in [10_000, 100_000, 1_000_000, 10_000_000]]
+filenames =  ["file"+str(size)+"k.raw" for size in [10_000, 100_000, 1_000_000, 10_000_000]] # TODO: Fix path
 
 
 def post_delegated(filename):

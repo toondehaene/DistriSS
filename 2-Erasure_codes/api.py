@@ -36,16 +36,19 @@ if(delegate):
     print("Using delegates")
     delegate_socket = context.socket(zmq.PUSH)
     delegate_socket.bind("tcp://*:5556")
+    
+    delegate_response = context.socket(zmq.PULL)
+    delegate_response.bind("tcp://*:5551")
 else:
     print("Not using delegates")
     send_task_socket = context.socket(zmq.PUSH)
     send_task_socket.bind("tcp://*:5557")
 
-response_socket = context.socket(zmq.PULL)
-response_socket.bind("tcp://*:5558")
+    response_socket = context.socket(zmq.PULL)
+    response_socket.bind("tcp://*:5558")
 
-data_req_socket = context.socket(zmq.PUB)
-data_req_socket.bind("tcp://*:5559")
+    data_req_socket = context.socket(zmq.PUB)
+    data_req_socket.bind("tcp://*:5559")
 
 save_done_socket = context.socket(zmq.PULL)
 save_done_socket.bind("tcp://*:5560")
@@ -77,14 +80,24 @@ def get_file(file_id):
 
     coded_fragments = storage_details['coded_fragments']
     max_erasures = storage_details['max_erasures']
-
-    file_data, fulltime, decodetime = rs.get_file(
-        coded_fragments,
-        max_erasures,
-        f['size'],
-        data_req_socket, 
-        response_socket
-    )
+    fulltime = -1
+    decodetime = -1
+    if(delegate):
+        file_data = rs.delegate_get_file(
+            coded_fragments,
+            max_erasures,
+            f['size'],
+            delegate_socket,
+            delegate_response
+        )
+    else:
+        file_data, fulltime, decodetime = rs.get_file(
+            coded_fragments,
+            max_erasures,
+            f['size'],
+            data_req_socket, 
+            response_socket
+        )
 
     response = send_file(io.BytesIO(file_data), mimetype=f['content_type'])
     response.headers['fullDecTime'] = fulltime

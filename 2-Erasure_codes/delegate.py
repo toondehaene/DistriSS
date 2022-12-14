@@ -27,6 +27,8 @@ if is_raspberry_pi():
 else:
     delegate_address = "tcp://localhost:5556"
     proxy_send_address = "tcp://localhost:5555"
+    proxy_response_address = "tcp://localhost:5554"
+    lead_response_address = "tcp://localhost:5551"
     #repair_subscriber_address = "tcp://localhost:5560"
     #repair_sender_address = "tcp://localhost:5561"
 
@@ -38,21 +40,14 @@ receiver.connect(delegate_address)
 sender = context.socket(zmq.PUSH)
 sender.connect(proxy_send_address)
 
-response = context.socket(zmq.PULL)
-response.connect(fragment_response_address)
+proxy_response = context.socket(zmq.PULL)
+proxy_response.connect(proxy_response_address)
 
-#print("Listening on "+ save_fragment_address)
+lead_response = context.socket(zmq.PUSH)
+lead_response.connect(lead_response_address)
 
-# Socket to send results to the controller
-#response_sender = context.socket(zmq.PUSH)
-#response_sender.connect(save_response_address)
-
-# Use a Poller to monitor three sockets at the same time
 poller = zmq.Poller()
 poller.register(receiver, zmq.POLLIN)
-#poller.register(subscriber, zmq.POLLIN)
-#poller.register(delegate, zmq.POLLIN)
-#poller.register(repair_subscriber, zmq.POLLIN
 
 print("Starting to listen to be a delegate")
 
@@ -75,7 +70,6 @@ while True:
         max_erasures = task.max_erasures
 
         if(isEncoding):
-            
             print(filenames)
             filedata = bytearray(msg[1])
 
@@ -83,17 +77,34 @@ while True:
             fragment_names, encoding_time, pure_enc_time = rs.store_file(filedata, max_erasures, sender, filenames = filenames)
             print("Done sending to proxy")
         else:
-            # Requesting files through proxy
+            print("WERE AT DELEGATE")
+            #msg = receiver.recv_string()
+            # Send message to proxy
+            #print("Messaging proxy")
+            #sender.send_string("Message from delegate to proxy")
+
+            # Receive response from proxy
+            #resp = proxy_response.recv_string()
+
+            #print("Received answer from proxy, returning to lead")
+            #lead_response.send_string(resp)
+
+            #Requesting files through proxy
             file_size = task.file_size
             file_data, fulltime, decodetime = rs.get_file(
-                filenames,
-                max_erasures,
-                file_size,
-                sender,
-                response
+               filenames,
+               max_erasures,
+               file_size,
+               sender,
+               proxy_response
             )
 
-            # TODO get response from proxy
+            print("GOT PROXY RESPONSE")
+
+            lead_response.send(
+                file_data
+            )
+
 
 
 #

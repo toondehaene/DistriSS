@@ -38,6 +38,9 @@ receiver.connect(delegate_address)
 sender = context.socket(zmq.PUSH)
 sender.connect(proxy_send_address)
 
+response = context.socket(zmq.PULL)
+response.connect(fragment_response_address)
+
 #print("Listening on "+ save_fragment_address)
 
 # Socket to send results to the controller
@@ -64,18 +67,33 @@ while True:
     # At this point one or multiple sockets may have received a message
 
     if receiver in socks:
-
         msg = receiver.recv_multipart()
-
         task = messages_pb2.delegate_request()
         task.ParseFromString(msg[0])
+        isEncoding = task.encoding
         filenames = task.filenames
         max_erasures = task.max_erasures
-        print(filenames)
-        filedata = bytearray(msg[1])
 
-        print("Starting RS store")
-        fragment_names, encoding_time, pure_enc_time = rs.store_file(filedata, max_erasures, sender, filenames = filenames)
-        print("Done sending to proxy")
-        
+        if(isEncoding):
+            
+            print(filenames)
+            filedata = bytearray(msg[1])
+
+            print("Starting RS store")
+            fragment_names, encoding_time, pure_enc_time = rs.store_file(filedata, max_erasures, sender, filenames = filenames)
+            print("Done sending to proxy")
+        else:
+            # Requesting files through proxy
+            file_size = task.file_size
+            file_data, fulltime, decodetime = rs.get_file(
+                filenames,
+                max_erasures,
+                file_size,
+                sender,
+                response
+            )
+
+            # TODO get response from proxy
+
+
 #

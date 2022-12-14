@@ -9,6 +9,8 @@ message delegate_request
 {
     repeated string filenames = 1;
     int32 max_erasures = 2;
+    int32 file_size = 3;
+    bool encoding = 4;
 }
 
 message getdata_request

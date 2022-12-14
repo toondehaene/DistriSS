@@ -29,6 +29,7 @@ def delegate_store_file(file_data, max_erasures, socket):
 
     task = messages_pb2.delegate_request()
     task.max_erasures = max_erasures
+    task.encoding = True
 
     for name in fragment_names:
         task.filenames.append(name)

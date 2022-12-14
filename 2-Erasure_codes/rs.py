@@ -34,8 +34,9 @@ def delegate_get_file(coded_fragments, max_erasures, file_size,
         task.SerializeToString()
     )
 
+    print("Wainting for results")
     result = response_socket.recv()
-
+    print("Got results")
     return result
 
 def delegate_store_file(file_data, max_erasures, socket):
@@ -96,7 +97,6 @@ def encode(file_data, max_erasures, filenames=[]):
     
         task = messages_pb2.fragment_request()
         task.filename = name
-        task.is_store = True
 
         tasks.append(task.SerializeToString())
         datas.append(coefficients[:symbols] + bytearray(symbol))
@@ -144,13 +144,9 @@ def decode_file(symbols):
     return data_out
 #
 
-def get_file(coded_fragments, max_erasures, file_size,
-             data_req_socket, response_socket):
-
-    t1 = time.perf_counter()
-    # We need 4-max_erasures fragments to reconstruct the file, select this many 
-    # by randomly removing 'max_erasures' elements from the given chunk names. 
+def get_fragments(coded_fragments, max_erasures, data_req_socket, response_socket):
     fragnames = copy.deepcopy(coded_fragments)
+
     for i in range(max_erasures):
         fragnames.remove(random.choice(fragnames))
     
@@ -158,24 +154,47 @@ def get_file(coded_fragments, max_erasures, file_size,
     for name in fragnames:
         task = messages_pb2.fragment_request()
         task.filename = name
-        task.is_store = False
+
         data_req_socket.send(
             task.SerializeToString()
-            )
+        )
 
     # Receive all chunks and insert them into the symbols array
-    symbols = []
+    chunknames = []
+    data = []
     for _ in range(len(fragnames)):
         print("Trying to get fragment")
         result = response_socket.recv_multipart()
         print("Got fragment")
         # In this case we don't care about the received name, just use the 
         # data from the second frame
-        symbols.append({
-            "chunkname": result[0].decode('utf-8'), 
-            "data": bytearray(result[1])
-        })
+        # symbols.append({
+        #     "chunkname": result[0].decode('utf-8'), 
+        #     "data": bytearray(result[1])
+        # })
+
+        chunknames.append(result[0])
+        data.append(result[1])
+        # symbols.append({
+        #     "chunkname": result[0], 
+        #     "data": result[1]
+        # })
     print("All coded fragments received successfully")
+
+    return chunknames, data
+
+def get_file(coded_fragments, max_erasures, file_size,
+             data_req_socket, response_socket):
+
+    t1 = time.perf_counter()
+    chunknames, data = get_fragments(coded_fragments, max_erasures, data_req_socket, response_socket)
+
+    symbols = []
+    for i in range(len(chunknames)):
+        symbols.append({
+            "chunkname": chunknames[i].decode('utf-8'), 
+            "data": bytearray(data[i])
+        })
 
     # Measure time to decode
     t2 = time.perf_counter()

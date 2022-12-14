@@ -3,7 +3,17 @@ syntax = "proto3";
 message fragment_request
 {
     string filename = 1;
-    bool is_store = 2;
+}
+
+message get_fragments_request
+{
+    repeated string filenames = 1;
+    int32 max_erasures = 2;
+}
+
+message fragments_reponse {
+    repeated string filenames = 1;
+    repeated bytes chunks = 2;
 }
 
 message delegate_request

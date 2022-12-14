@@ -90,6 +90,8 @@ def get_file(file_id):
             delegate_request_socket,
             delegate_response_socket
         )
+
+        print("Got a response")
     else:
         file_data, fulltime, decodetime = rs.get_file(
             coded_fragments,

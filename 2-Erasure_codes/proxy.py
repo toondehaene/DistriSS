@@ -91,6 +91,8 @@ while True:
             )
 
             result = fragment_response.recv_multipart()
+
+            print("Got fragment")
             delegate_response.send_multipart([
                 result[0],
                 result[1]

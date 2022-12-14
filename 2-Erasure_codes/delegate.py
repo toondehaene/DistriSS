@@ -15,12 +15,12 @@ import string
 from utils import random_string, write_file, is_raspberry_pi
 
 if is_raspberry_pi():
-    print("HEJ")
     # On the Raspberry Pi: ask the user to input the last segment of the server IP address
-    server_address = input("Server address: 192.168.0.___ ")
+    server_address = "101"
+    proxy_address = "102"
     delegate_address = "tcp://192.168.0."+server_address+":5556"
-    proxy_send_address = "tcp://192.168.0."+server_address+":5555"
-    proxy_response_address = "tcp://192.168.0."+server_address+":5554"
+    proxy_send_address = "tcp://192.168.0."+proxy_address+":5555"
+    proxy_response_address = "tcp://192.168.0."+proxy_address+":5554"
     lead_response_address = "tcp://192.168.0."+server_address+":5551"
 else:
     delegate_address = "tcp://localhost:5556"

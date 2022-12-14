@@ -11,6 +11,8 @@ import os
 
 from utils import random_string, write_file, is_raspberry_pi
 
+delegate = sys.argv[2].lower() == 'true'
+
 # Read the folder name where chunks should be stored from the first program argument
 # (or use the current folder if none was given)
 data_folder = sys.argv[1] if len(sys.argv) > 1 else "./"
@@ -38,13 +40,21 @@ except FileNotFoundError:
         print("New ID generated and saved to file: %s" % node_id)
 
 if is_raspberry_pi():
-    print("HEJ")
     # On the Raspberry Pi: ask the user to input the last segment of the server IP address
-    server_address = input("Server address: 192.168.0.___ ")
-    pull_task_address = "tcp://192.168.0."+server_address+":5557"
-    get_fragment_address = "tcp://192.168.0."+server_address+":5559"
-    send_fragment_address = "tcp://192.168.0."+server_address+":5558"
+    server_address = "101"
+    proxy_address = "102"
+
     save_response_address = "tcp://192.168.0."+server_address+":5560"
+
+    if delegate:
+        pull_task_address = "tcp://192.168.0."+proxy_address+":5557"
+        get_fragment_address = "tcp://192.168.0."+proxy_address+":5559"
+        send_fragment_address = "tcp://192.168.0."+proxy_address+":5558"
+    else:
+        pull_task_address = "tcp://192.168.0."+server_address+":5557"
+        get_fragment_address = "tcp://192.168.0."+server_address+":5559"
+        send_fragment_address = "tcp://192.168.0."+server_address+":5558"
+    
 else:
     # On the local computer: use localhost
     pull_task_address = "tcp://localhost:5557"

@@ -14,93 +14,99 @@ def main():
     # Run with number of erasures 1 with delegation
     # Run with number of erasures 2 with delegation
 
-    # parser = argparse.ArgumentParser(description = 'Run program :)')
-    # parser.add_argument('-e', '--erasures', type=int, default=1)
-    # parser.add_argument('-m', '--measurements', type=int, default=1)
-    # args = parser.parse_args()
+    parser = argparse.ArgumentParser(description = 'Run program :)')
+    parser.add_argument('-e', '--erasures', type=int, default=1)
+    parser.add_argument('-m', '--measurements', type=int, default=1)
+    args = parser.parse_args()
 
-    print("Starting POST measurement collection...")
-    #results = save_file("file10000k.raw", max_erasures=1)
-    results = get_file(1)
-    print(results)
+    # print("Starting POST measurement collection...")
+    # results = save_file("file10000k.raw", max_erasures=1)
+    
+    # print(results)
+    # results = get_file(4)
+    # print(results)
 
-    # # IDs to do GET measurements on
-    # file_ids = []
 
-    # # Dataframes
-    # df_client_post = pd.DataFrame()
-    # df_full_enc = pd.DataFrame()
-    # df_pure_enc = pd.DataFrame()
-    # df_lead_done = pd.DataFrame()
-    # df_last_done = pd.DataFrame()
+    # IDs to do GET measurements on
+    file_ids = []
 
-    # for file in filenames:
-    #     get_file_id = True
+    # Dataframes
+    df_client_post = pd.DataFrame()
+    df_full_enc = pd.DataFrame()
+    df_pure_enc = pd.DataFrame()
+    df_lead_done = pd.DataFrame()
+    df_last_done = pd.DataFrame()
 
-    #     client_post_times = []
-    #     full_enc_times = []
-    #     pure_enc_times = []
-    #     lead_done_times = []
-    #     last_done_times = []
+    for file in filenames:
+        get_file_id = True
 
-    #     for i in range(args.measurements):
+        client_post_times = []
+        full_enc_times = []
+        pure_enc_times = []
+        lead_done_times = []
+        last_done_times = []
 
-    #         results = save_file(file, max_erasures=args.erasures)
+        for i in range(args.measurements):
 
-    #         client_post_times.append(results.get("client_post_time"))
-    #         full_enc_times.append(results.get("full_enc_time"))
-    #         pure_enc_times.append(results.get("pure_enc_time"))
-    #         lead_done_times.append(results.get("lead_done_time"))
-    #         last_done_times.append(results.get("last_done_time"))
+            results = save_file(file, max_erasures=args.erasures)
 
-    #         # Getting only one ID of a file to do GET measurements on
-    #         if get_file_id:
-    #             file_ids.append(results.get("file_id"))
-    #             get_file_id = False
+            client_post_times.append(results.get("client_post_time"))
+            full_enc_times.append(results.get("full_enc_time"))
+            pure_enc_times.append(results.get("pure_enc_time"))
+            lead_done_times.append(results.get("lead_done_time"))
+            last_done_times.append(results.get("last_done_time"))
 
-    #     df_client_post.insert(0, column=str(file), value=client_post_times)
-    #     df_full_enc.insert(0, column=str(file), value=full_enc_times)
-    #     df_pure_enc.insert(0, column=str(file), value=pure_enc_times)
-    #     df_lead_done.insert(0, column=str(file), value=lead_done_times)
-    #     df_last_done.insert(0, column=str(file), value=last_done_times)
+            # Getting only one ID of a file to do GET measurements on
+            if get_file_id:
+                file_ids.append(results.get("file_id"))
+                get_file_id = False
+            print(i)
 
-    # # TODO: Change the names when running with delegation.
-    # df_client_post.to_csv("./testresults/client_post_results_me" + str(args.erasures) + ".csv")
-    # df_full_enc.to_csv("./testresults/full_enc_results_me" + str(args.erasures) + ".csv")
-    # df_pure_enc.to_csv("./testresults/pure_enc_results_me" + str(args.erasures) + ".csv")
-    # df_lead_done.to_csv("./testresults/lead_results_me" + str(args.erasures) + ".csv")
-    # df_last_done.to_csv("./testresults/last_results_me" + str(args.erasures) + ".csv")
-    # print("POST measurement done.")
+        df_client_post.insert(0, column=str(file), value=client_post_times)
+        df_full_enc.insert(0, column=str(file), value=full_enc_times)
+        df_pure_enc.insert(0, column=str(file), value=pure_enc_times)
+        df_lead_done.insert(0, column=str(file), value=lead_done_times)
+        df_last_done.insert(0, column=str(file), value=last_done_times)
 
-    # print("Starting GET measurement collection...")
-    # # file_ids = [42, 45, 48, 51] # Hardcoded for testing
+    # TODO: Change the names when running with delegation.
+    df_client_post.to_csv("./testresults/nondelegation_client_post_results_me" + str(args.erasures) + ".csv")
+    df_full_enc.to_csv("./testresults/nondelegation_full_enc_results_me" + str(args.erasures) + ".csv")
+    df_pure_enc.to_csv("./testresults/nondelegation_pure_enc_results_me" + str(args.erasures) + ".csv")
+    df_lead_done.to_csv("./testresults/nondelegation_lead_results_me" + str(args.erasures) + ".csv")
+    df_last_done.to_csv("./testresults/nondelegation_last_results_me" + str(args.erasures) + ".csv")
+    print("POST measurement done.")
 
-    # # Dataframes
-    # df_client_get = pd.DataFrame()
-    # df_full_dec = pd.DataFrame()
-    # df_pure_dec = pd.DataFrame()
+    print("Starting GET measurement collection...")
+    # file_ids = [42, 45, 48, 51] # Hardcoded for testing
 
-    # for file_id in file_ids:
-    #     client_get_times = []
-    #     full_dec_times = []
-    #     pure_dec_times = []
+    # Dataframes
+    df_client_get = pd.DataFrame()
+    df_full_dec = pd.DataFrame()
+    df_pure_dec = pd.DataFrame()
 
-    #     for i in range(args.measurements):
-    #         results = get_file(file_id)
+    for file_id in file_ids:
+        client_get_times = []
+        full_dec_times = []
+        pure_dec_times = []
 
-    #         client_get_times.append(results.get("client_get_time"))
-    #         full_dec_times.append(results.get("full_dec_time"))
-    #         pure_dec_times.append(results.get("pure_dec_time"))
+        for i in range(args.measurements):
+            results = get_file(file_id)
 
-    #     df_client_get.insert(0, column=str(file_id), value=client_get_times) # file_id should be file?
-    #     df_full_dec.insert(0, column=str(file_id), value=full_dec_times)
-    #     df_pure_dec.insert(0, column=str(file_id), value=pure_dec_times)
+            client_get_times.append(results.get("client_get_time"))
+            full_dec_times.append(results.get("full_dec_time"))
+            pure_dec_times.append(results.get("pure_dec_time"))
 
-    # # TODO: Change the names when running with delegation.
-    # df_client_get.to_csv("./testresults/client_get_results_me" + str(args.erasures) + ".csv")
-    # df_full_dec.to_csv("./testresults/full_dec_results_me" + str(args.erasures) + ".csv")
-    # df_pure_dec.to_csv("./testresults/pure_dec_results_me" + str(args.erasures) + ".csv")
-    # print("GET measurement done.")
+            print(i)
+
+        df_client_get.insert(0, column=str(file_id), value=client_get_times) # file_id should be file?
+        df_full_dec.insert(0, column=str(file_id), value=full_dec_times)
+        df_pure_dec.insert(0, column=str(file_id), value=pure_dec_times)
+
+    # TODO: Change the names when running with delegation.
+    df_client_get.to_csv("./testresults/nondelegation_client_get_results_me" + str(args.erasures) + ".csv")
+    df_full_dec.to_csv("./testresults/nondelegation_full_dec_results_me" + str(args.erasures) + ".csv")
+    df_pure_dec.to_csv("./testresults/nondelegation_pure_dec_results_me" + str(args.erasures) + ".csv")
+    print("GET measurement done.")
 
     
 def save_file(filename, max_erasures):

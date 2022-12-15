@@ -10,7 +10,6 @@ import rs
 from utils import is_raspberry_pi
 
 if is_raspberry_pi():
-    print("HEJ")
     # On the Raspberry Pi: ask the user to input the last segment of the server IP address
     proxy_address = "102"
     sender_address = "tcp://192.168.0."+proxy_address+":5557"

@@ -176,22 +176,11 @@ def get_fragments(coded_fragments, max_erasures, data_req_socket, response_socke
     chunknames = []
     data = []
     for _ in range(len(fragnames)):
-        print("Trying to get fragment")
         result = response_socket.recv_multipart()
-        print("Got fragment")
-        # In this case we don't care about the received name, just use the 
-        # data from the second frame
-        # symbols.append({
-        #     "chunkname": result[0].decode('utf-8'), 
-        #     "data": bytearray(result[1])
-        # })
 
         chunknames.append(result[0])
         data.append(result[1])
-        # symbols.append({
-        #     "chunkname": result[0], 
-        #     "data": result[1]
-        # })
+
     print("All coded fragments received successfully")
 
     return chunknames, data

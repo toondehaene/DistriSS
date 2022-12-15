@@ -11,8 +11,6 @@ import os
 
 from utils import random_string, write_file, is_raspberry_pi
 
-delegate = sys.argv[2].lower() == 'true'
-
 # Read the folder name where chunks should be stored from the first program argument
 # (or use the current folder if none was given)
 data_folder = sys.argv[1] if len(sys.argv) > 1 else "./"
@@ -24,6 +22,8 @@ if data_folder != "./":
         # OK, the folder exists 
         pass
 print("Data folder: %s" % data_folder)
+
+delegate = sys.argv[2].lower() == 'true'
 
 # Check whether the node has an id. If it doesn't, generate one and save it to disk.
 try:
@@ -47,10 +47,12 @@ if is_raspberry_pi():
     save_response_address = "tcp://192.168.0."+server_address+":5560"
 
     if delegate:
+        print("Starting storage node with delegation")
         pull_task_address = "tcp://192.168.0."+proxy_address+":5557"
         get_fragment_address = "tcp://192.168.0."+proxy_address+":5559"
         send_fragment_address = "tcp://192.168.0."+proxy_address+":5558"
     else:
+        print("Starting regular storage node")
         pull_task_address = "tcp://192.168.0."+server_address+":5557"
         get_fragment_address = "tcp://192.168.0."+server_address+":5559"
         send_fragment_address = "tcp://192.168.0."+server_address+":5558"
